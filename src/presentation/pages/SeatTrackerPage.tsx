@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SeatMap } from '../components/SeatMap';
 import { useSeats } from '../../application/hooks/useSeats';
+import { useRequests } from '../../application/hooks/useRequests';
 import { SECTIONS, TOTAL_SEATS } from '../../domain/constants/seating';
 import type { SeatSummary } from '../../domain/models/Seat';
 
@@ -9,9 +10,30 @@ interface SeatTrackerPageProps {
 }
 
 export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) => {
-  const { seatMap, summaries, availableCount, occupiedCount, sectionAvailability, loading, error, toggling, toggleSeat } =
-    useSeats(serviceId);
+  const {
+    seatMap,
+    summaries,
+    availableCount,
+    occupiedCount,
+    sectionAvailability,
+    loading,
+    error,
+    toggling,
+    toggleSeat,
+  } = useSeats(serviceId);
+
+  const { pendingRequests } = useRequests(serviceId);
+
   const [activeSection, setActiveSection] = useState<'all' | 'left' | 'middle' | 'right'>('all');
+
+  // Build a set of row keys that have pending requests: "${section}-${row}"
+  const pendingRequestRows = useMemo(() => {
+    const rowSet = new Set<string>();
+    for (const req of pendingRequests) {
+      rowSet.add(`${req.section}-${req.row}`);
+    }
+    return rowSet;
+  }, [pendingRequests]);
 
   const filteredSummaries = summaries.filter(
     (s) => activeSection === 'all' || s.section === activeSection
@@ -100,23 +122,29 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
         {/* Row summaries */}
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {filteredSummaries.map((summary: SeatSummary) => {
+            const rowKey = `${summary.section}-${summary.row}`;
+            const hasPending = pendingRequestRows.has(rowKey);
             const pct = summary.totalSeats > 0
               ? (summary.availableSeats / summary.totalSeats) * 100
               : 0;
-            const color =
-              pct === 0
-                ? 'bg-danger/10 text-danger'
-                : pct < 30
-                ? 'bg-warning/10 text-warning'
-                : 'bg-success/10 text-success';
+
+            // Pending request overrides colour to amber; otherwise use availability
+            const colorClass = hasPending
+              ? 'bg-warning/15 text-warning border border-warning/40'
+              : pct === 0
+              ? 'bg-danger/10 text-danger'
+              : pct < 30
+              ? 'bg-warning/10 text-warning'
+              : 'bg-success/10 text-success';
 
             return (
               <div
                 key={`${summary.section}-${summary.row}`}
-                className={`flex items-center justify-between px-3 py-1.5 rounded-lg ${color}`}
+                className={`flex items-center justify-between px-3 py-1.5 rounded-lg ${colorClass}`}
               >
-                <span className="text-xs font-medium">
+                <span className="text-xs font-medium flex items-center gap-1">
                   {summary.section.charAt(0).toUpperCase() + summary.section.slice(1)} Row {summary.row}
+                  {hasPending && <span title="Pending request">🙋</span>}
                 </span>
                 <span className="text-xs font-bold">
                   {summary.availableSeats}/{summary.totalSeats} free
@@ -133,10 +161,13 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
           <h2 className="font-bold text-primary text-base">Floor Plan</h2>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Available
+              <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Free
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-sm bg-occupied inline-block" /> Occupied
+              <span className="w-3 h-3 rounded-sm bg-occupied inline-block" /> Taken
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-warning inline-block" /> Request
             </span>
           </div>
         </div>
@@ -151,6 +182,7 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
           canToggle={true}
           toggling={toggling}
           onToggle={toggleSeat}
+          pendingRequestRows={pendingRequestRows}
         />
       </div>
 

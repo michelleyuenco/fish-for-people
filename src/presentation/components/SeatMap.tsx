@@ -8,6 +8,8 @@ interface SeatMapProps {
   canToggle: boolean;
   toggling: Set<string>;
   onToggle: (seat: Seat) => void;
+  /** Set of row keys (`${section}-${row}`) that have a pending request */
+  pendingRequestRows?: Set<string>;
 }
 
 interface SectionColumnProps {
@@ -19,6 +21,7 @@ interface SectionColumnProps {
   canToggle: boolean;
   toggling: Set<string>;
   onToggle: (seat: Seat) => void;
+  pendingRequestRows: Set<string>;
 }
 
 const SectionColumn: React.FC<SectionColumnProps> = ({
@@ -30,6 +33,7 @@ const SectionColumn: React.FC<SectionColumnProps> = ({
   canToggle,
   toggling,
   onToggle,
+  pendingRequestRows,
 }) => {
   const maxSeatsInRow = seatsPerRow(2); // max seats (row 2+ is the wider row)
 
@@ -44,6 +48,8 @@ const SectionColumn: React.FC<SectionColumnProps> = ({
       {Array.from({ length: rows }, (_, i) => {
         const rowNum = i + 1;
         const seatsInThisRow = seatsPerRow(rowNum);
+        const rowKey = `${sectionName}-${rowNum}`;
+        const rowHasPendingRequest = pendingRequestRows.has(rowKey);
 
         return (
           <div
@@ -51,8 +57,12 @@ const SectionColumn: React.FC<SectionColumnProps> = ({
             className="flex items-center gap-0.5"
             style={{ width: `${maxSeatsInRow * 22}px` }} // fixed width for alignment
           >
-            {/* Row number */}
-            <span className="text-[9px] text-gray-400 w-3 text-right flex-shrink-0 mr-0.5">
+            {/* Row number — amber when a request is pending for this row */}
+            <span
+              className={`text-[9px] w-3 text-right flex-shrink-0 mr-0.5 font-semibold ${
+                rowHasPendingRequest ? 'text-warning' : 'text-gray-400'
+              }`}
+            >
               {rowNum}
             </span>
 
@@ -75,6 +85,7 @@ const SectionColumn: React.FC<SectionColumnProps> = ({
                   seat={seat}
                   canToggle={canToggle}
                   isToggling={toggling.has(seatId)}
+                  hasPendingRequest={rowHasPendingRequest}
                   onToggle={onToggle}
                 />
               );
@@ -91,6 +102,7 @@ export const SeatMap: React.FC<SeatMapProps> = ({
   canToggle,
   toggling,
   onToggle,
+  pendingRequestRows = new Set(),
 }) => {
   return (
     <div className="overflow-x-auto pb-2">
@@ -106,6 +118,7 @@ export const SeatMap: React.FC<SeatMapProps> = ({
             canToggle={canToggle}
             toggling={toggling}
             onToggle={onToggle}
+            pendingRequestRows={pendingRequestRows}
           />
         ))}
       </div>
