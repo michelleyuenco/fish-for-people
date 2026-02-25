@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
-import { ZONE_NAMES, type ZoneCounts } from '../../domain/models/Headcount';
+import { ZONE_NAMES, type ZoneName, type ZoneCounts } from '../../domain/models/Headcount';
 import { calculateTotal } from '../../domain/rules/headcountRules';
 
 interface HeadcountPageProps {
   serviceId: string;
 }
+
+// Color accent per zone — distinct so users can identify by color even at a glance
+const ZONE_COLORS: Record<ZoneName, 'blue' | 'emerald' | 'violet' | 'amber' | 'slate'> = {
+  left: 'blue',
+  middle: 'emerald',
+  right: 'violet',
+  production: 'amber',
+  outside: 'slate',
+};
 
 const EMPTY_COUNTS: ZoneCounts = {
   left: 0,
@@ -93,8 +102,8 @@ const CounterForm: React.FC<{
           )}
         </div>
 
-        {/* Zone counts */}
-        <div className="space-y-2">
+        {/* Zone counts — spaced so adjacent taps are clearly distinct */}
+        <div className="space-y-4">
           {ZONE_NAMES.map(({ key, label }) => (
             <CountInput
               key={key}
@@ -102,6 +111,7 @@ const CounterForm: React.FC<{
               value={counts[key]}
               onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
               disabled={submitting}
+              colorAccent={ZONE_COLORS[key]}
             />
           ))}
         </div>
