@@ -1,5 +1,5 @@
 import type { Seat, SeatSummary, SectionName } from '../models/Seat';
-import { SECTIONS } from '../constants/seating';
+import { SECTIONS, TOTAL_SEATS, SECTION_TOTALS } from '../constants/seating';
 
 export function computeSeatSummaries(seats: Seat[]): SeatSummary[] {
   const summaryMap = new Map<string, SeatSummary>();
@@ -33,7 +33,10 @@ export function computeSeatSummaries(seats: Seat[]): SeatSummary[] {
 }
 
 export function getAvailableCount(seats: Seat[]): number {
-  return seats.filter((s) => !s.occupied).length;
+  // Available = total seats minus those explicitly marked occupied in Firestore.
+  // Seats with no Firestore doc at all are available by default.
+  const occupiedCount = seats.filter((s) => s.occupied).length;
+  return TOTAL_SEATS - occupiedCount;
 }
 
 export function getOccupiedCount(seats: Seat[]): number {
@@ -41,10 +44,15 @@ export function getOccupiedCount(seats: Seat[]): number {
 }
 
 export function getSectionAvailability(seats: Seat[]): Record<SectionName, number> {
-  const result: Record<SectionName, number> = { left: 0, middle: 0, right: 0 };
+  // Start from per-section totals and subtract occupied seats.
+  const result: Record<SectionName, number> = {
+    left: SECTION_TOTALS.left,
+    middle: SECTION_TOTALS.middle,
+    right: SECTION_TOTALS.right,
+  };
   for (const seat of seats) {
-    if (!seat.occupied) {
-      result[seat.section] += 1;
+    if (seat.occupied) {
+      result[seat.section] -= 1;
     }
   }
   return result;

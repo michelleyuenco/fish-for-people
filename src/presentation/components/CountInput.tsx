@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 interface CountInputProps {
   label: string;
@@ -15,57 +15,95 @@ export const CountInput: React.FC<CountInputProps> = ({
   hasDiscrepancy = false,
   disabled = false,
 }) => {
+  // Long-press support for rapid increment
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const increment = () => !disabled && onChange(value + 1);
+  const decrement = () => !disabled && value > 0 && onChange(value - 1);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const num = parseInt(raw, 10);
-    if (!isNaN(num) && num >= 0) {
-      onChange(num);
-    } else if (raw === '') {
-      onChange(0);
-    }
+    const num = parseInt(e.target.value, 10);
+    if (!isNaN(num) && num >= 0) onChange(num);
+    else if (e.target.value === '') onChange(0);
   };
 
-  const increment = () => onChange(value + 1);
-  const decrement = () => onChange(Math.max(0, value - 1));
+  // Long-press: hold + to rapid-fire increment
+  const startLongPress = (fn: () => void) => {
+    fn(); // immediate first hit
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(fn, 80);
+    }, 400);
+  };
+
+  const stopLongPress = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
 
   return (
     <div
-      className={`flex items-center justify-between py-3 px-4 rounded-xl border ${
-        hasDiscrepancy
-          ? 'border-warning bg-warning/10'
-          : 'border-gray-200 bg-white'
+      className={`rounded-2xl border-2 overflow-hidden transition-all ${
+        hasDiscrepancy ? 'border-warning bg-warning/5' : 'border-gray-200 bg-white'
       }`}
     >
-      <span className={`text-sm font-medium ${hasDiscrepancy ? 'text-warning' : 'text-gray-700'}`}>
-        {label}
-        {hasDiscrepancy && <span className="ml-1 text-warning">⚠</span>}
-      </span>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={decrement}
-          disabled={disabled || value <= 0}
-          className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 font-bold flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
-        >
-          −
-        </button>
+      {/* Label row */}
+      <div
+        className={`flex items-center justify-between px-4 pt-3 pb-1 ${
+          hasDiscrepancy ? 'text-warning' : 'text-gray-600'
+        }`}
+      >
+        <span className="text-sm font-semibold">
+          {label}
+          {hasDiscrepancy && <span className="ml-1.5">⚠</span>}
+        </span>
+        {/* Direct-type input */}
         <input
           type="number"
           value={value}
           onChange={handleChange}
           disabled={disabled}
           min={0}
-          className={`w-14 text-center font-semibold text-base border rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-            hasDiscrepancy ? 'border-warning text-warning' : 'border-gray-300 text-gray-900'
+          inputMode="numeric"
+          className={`w-16 text-center font-bold text-xl border rounded-xl py-0.5 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-transparent ${
+            hasDiscrepancy ? 'border-warning text-warning' : 'border-gray-200 text-gray-900'
           }`}
         />
+      </div>
+
+      {/* Large button row */}
+      <div className="flex gap-2 px-3 pb-3 pt-1">
+        {/* Decrement — secondary, smaller */}
         <button
           type="button"
-          onClick={increment}
-          disabled={disabled}
-          className="w-8 h-8 rounded-lg bg-primary text-white font-bold flex items-center justify-center active:scale-90 transition-all disabled:opacity-40"
+          onPointerDown={() => startLongPress(decrement)}
+          onPointerUp={stopLongPress}
+          onPointerLeave={stopLongPress}
+          disabled={disabled || value <= 0}
+          className="flex-none w-14 h-12 rounded-xl bg-gray-100 text-gray-500 text-2xl font-bold
+                     flex items-center justify-center
+                     active:scale-95 transition-all disabled:opacity-30 select-none
+                     touch-none"
+          aria-label="Decrease"
         >
-          +
+          −
+        </button>
+
+        {/* Increment — primary, dominant */}
+        <button
+          type="button"
+          onPointerDown={() => startLongPress(increment)}
+          onPointerUp={stopLongPress}
+          onPointerLeave={stopLongPress}
+          disabled={disabled}
+          className="flex-1 h-12 rounded-xl bg-primary text-white text-2xl font-bold
+                     flex items-center justify-center gap-2
+                     active:scale-95 transition-all disabled:opacity-40 select-none
+                     touch-none shadow-sm"
+          aria-label="Increase"
+        >
+          <span className="text-2xl leading-none">+</span>
+          <span className="text-sm font-semibold opacity-80">Add</span>
         </button>
       </div>
     </div>
