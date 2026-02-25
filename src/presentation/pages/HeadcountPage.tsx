@@ -3,6 +3,7 @@ import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
 import { ZONE_NAMES, type ZoneName, type ZoneCounts } from '../../domain/models/Headcount';
 import { calculateTotal } from '../../domain/rules/headcountRules';
+import { SECTION_TOTALS } from '../../domain/constants/seating';
 
 interface HeadcountPageProps {
   serviceId: string;
@@ -25,18 +26,47 @@ const EMPTY_COUNTS: ZoneCounts = {
   outside: 0,
 };
 
+// ─── Count Mode ───────────────────────────────────────────────────────────────
+type CountMode = 'people' | 'empty-seats';
+
+/**
+ * Zones with fixed seat capacity (main hall sections).
+ * In empty-seat mode, the counter enters vacant seats; we derive occupied count.
+ */
+const HALL_ZONE_TOTALS: Partial<Record<ZoneName, number>> = {
+  left:   SECTION_TOTALS.left,   // 97
+  middle: SECTION_TOTALS.middle, // 181
+  right:  SECTION_TOTALS.right,  // 90
+};
+
+/** Convert empty-seat inputs to people counts before submission. */
+function emptySeatsToPeople(emptyCounts: ZoneCounts): ZoneCounts {
+  return {
+    left:       Math.max(0, (HALL_ZONE_TOTALS.left   ?? 0) - emptyCounts.left),
+    middle:     Math.max(0, (HALL_ZONE_TOTALS.middle  ?? 0) - emptyCounts.middle),
+    right:      Math.max(0, (HALL_ZONE_TOTALS.right   ?? 0) - emptyCounts.right),
+    production: emptyCounts.production, // no fixed capacity — still direct people count
+    outside:    emptyCounts.outside,
+  };
+}
+
 // ─── Counter Form ─────────────────────────────────────────────────────────────
 const CounterForm: React.FC<{
   onSubmit: (name: string, counts: ZoneCounts) => Promise<{ success: boolean; errors: string[] }>;
   submitting: boolean;
   existingCounterNames: string[];
 }> = ({ onSubmit, submitting, existingCounterNames }) => {
+  const [mode, setMode] = useState<CountMode>('people');
   const [name, setName] = useState('');
   const [counts, setCounts] = useState<ZoneCounts>({ ...EMPTY_COUNTS });
   const [submitted, setSubmitted] = useState(false);
+  const [submittedTotal, setSubmittedTotal] = useState(0);
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
-  const total = calculateTotal(counts);
+  // In people mode, total is a straight sum.
+  // In empty-seat mode, total is derived from capacity − empty.
+  const peopleCounts = mode === 'empty-seats' ? emptySeatsToPeople(counts) : counts;
+  const total = calculateTotal(peopleCounts);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,12 +75,20 @@ const CounterForm: React.FC<{
       return;
     }
     setFormErrors([]);
-    const result = await onSubmit(name.trim(), counts);
+    // Always submit people counts (convert if needed)
+    const result = await onSubmit(name.trim(), peopleCounts);
     if (result.success) {
+      setSubmittedTotal(total);
       setSubmitted(true);
     } else {
       setFormErrors(result.errors);
     }
+  };
+
+  const reset = () => {
+    setSubmitted(false);
+    setCounts({ ...EMPTY_COUNTS });
+    setName('');
   };
 
   if (submitted) {
@@ -59,16 +97,9 @@ const CounterForm: React.FC<{
         <div className="text-3xl mb-3">✅</div>
         <h3 className="font-bold text-primary text-lg">Submitted!</h3>
         <p className="text-gray-500 text-sm mt-1">Your count has been recorded.</p>
-        <p className="text-2xl font-bold text-primary mt-3">{total}</p>
+        <p className="text-2xl font-bold text-primary mt-3">{submittedTotal}</p>
         <p className="text-gray-400 text-xs">total counted</p>
-        <button
-          onClick={() => {
-            setSubmitted(false);
-            setCounts({ ...EMPTY_COUNTS });
-            setName('');
-          }}
-          className="btn-outline mt-5 w-full"
-        >
+        <button onClick={reset} className="btn-outline mt-5 w-full">
           Submit Again
         </button>
       </div>
@@ -77,7 +108,36 @@ const CounterForm: React.FC<{
 
   return (
     <div className="card">
-      <h3 className="font-bold text-primary text-base mb-4">Enter Your Count</h3>
+      {/* Mode toggle */}
+      <div className="flex gap-2 bg-gray-100 rounded-xl p-1 mb-5">
+        <button
+          type="button"
+          onClick={() => { setMode('people'); setCounts({ ...EMPTY_COUNTS }); }}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            mode === 'people' ? 'bg-white text-primary shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          👤 Count People
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode('empty-seats'); setCounts({ ...EMPTY_COUNTS }); }}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            mode === 'empty-seats' ? 'bg-white text-primary shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          💺 Empty Seats
+        </button>
+      </div>
+
+      {/* Mode hint */}
+      {mode === 'empty-seats' && (
+        <div className="bg-primary/8 border border-primary/20 rounded-xl px-3 py-2.5 mb-4 text-xs text-primary">
+          <span className="font-semibold">Empty seat mode:</span> Count vacant seats in each section.
+          The app converts to occupied count automatically.
+          Production &amp; Outside are still counted as people directly.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Counter name */}
@@ -102,23 +162,57 @@ const CounterForm: React.FC<{
           )}
         </div>
 
-        {/* Zone counts — spaced so adjacent taps are clearly distinct */}
+        {/* Zone inputs */}
         <div className="space-y-4">
-          {ZONE_NAMES.map(({ key, label }) => (
-            <CountInput
-              key={key}
-              label={label}
-              value={counts[key]}
-              onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
-              disabled={submitting}
-              colorAccent={ZONE_COLORS[key]}
-            />
-          ))}
+          {ZONE_NAMES.map(({ key, label }) => {
+            const isHallZone = key in HALL_ZONE_TOTALS;
+            const capacity = HALL_ZONE_TOTALS[key];
+
+            // In empty-seat mode: hall zones show empty-seat counter with capacity hint
+            if (mode === 'empty-seats' && isHallZone && capacity !== undefined) {
+              const occupied = Math.max(0, capacity - counts[key]);
+              return (
+                <div key={key}>
+                  <CountInput
+                    label={`${label} — empty seats`}
+                    value={counts[key]}
+                    onChange={(val) => setCounts((c) => ({ ...c, [key]: Math.min(val, capacity) }))}
+                    disabled={submitting}
+                    colorAccent={ZONE_COLORS[key]}
+                  />
+                  {/* Capacity conversion hint */}
+                  <div className="flex items-center justify-between mt-1.5 px-1 text-xs text-gray-500">
+                    <span>{capacity} seats total</span>
+                    <span>
+                      → <span className="font-semibold text-primary">{occupied} occupied</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+
+            // People mode (all zones) or non-hall zones in empty-seat mode
+            return (
+              <CountInput
+                key={key}
+                label={label}
+                value={counts[key]}
+                onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
+                disabled={submitting}
+                colorAccent={ZONE_COLORS[key]}
+              />
+            );
+          })}
         </div>
 
         {/* Total */}
         <div className="flex items-center justify-between px-4 py-3 bg-primary/10 rounded-xl">
-          <span className="font-semibold text-primary text-sm">Total</span>
+          <div>
+            <span className="font-semibold text-primary text-sm">Total</span>
+            {mode === 'empty-seats' && (
+              <span className="block text-[10px] text-primary/60">converted to occupied</span>
+            )}
+          </div>
           <span className="font-bold text-primary text-xl">{total}</span>
         </div>
 

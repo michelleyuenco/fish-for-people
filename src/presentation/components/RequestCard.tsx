@@ -48,7 +48,10 @@ export const RequestCard: React.FC<RequestCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-gray-800">
-              {sectionLabel} • Row {request.row}
+              {sectionLabel} •{' '}
+              {request.areaLabel
+                ? `${request.areaLabel} area`
+                : `Row ${request.row}`}
             </span>
             {isResolved && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
+import { FloorPlanPicker } from '../components/FloorPlanPicker';
+import type { FloorPlanSelection } from '../components/FloorPlanPicker';
 import { REQUEST_TYPES } from '../../domain/models/Request';
 import type { RequestType } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
-import { SECTIONS } from '../../domain/constants/seating';
 
 interface RequestsPageProps {
   serviceId: string;
@@ -12,41 +13,38 @@ interface RequestsPageProps {
 }
 
 // ─── Congregation Submit Form ─────────────────────────────────────────────────
-interface SubmitFormState {
-  section: SectionName | '';
-  row: number | '';
-  type: RequestType | '';
-  note: string;
-}
 
 const CongregationView: React.FC<{
   serviceId: string;
-  onSubmit: (payload: { section: SectionName; row: number; type: RequestType; note: string }) => Promise<boolean>;
+  onSubmit: (payload: {
+    section: SectionName;
+    row: number;
+    areaLabel?: string;
+    type: RequestType;
+    note: string;
+  }) => Promise<boolean>;
   submitting: boolean;
 }> = ({ onSubmit, submitting }) => {
-  const [form, setForm] = useState<SubmitFormState>({
-    section: '',
-    row: '',
-    type: '',
-    note: '',
-  });
+  const [location, setLocation] = useState<FloorPlanSelection | null>(null);
+  const [type, setType] = useState<RequestType | ''>('');
+  const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
-
-  const selectedSection = SECTIONS.find((s) => s.name === form.section);
-  const maxRow = selectedSection ? selectedSection.rows : 14;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.section || !form.row || !form.type) return;
+    if (!location || !type) return;
     const success = await onSubmit({
-      section: form.section as SectionName,
-      row: form.row as number,
-      type: form.type as RequestType,
-      note: form.note,
+      section: location.section,
+      row: location.row,
+      areaLabel: location.areaLabel,
+      type: type as RequestType,
+      note,
     });
     if (success) {
       setSubmitted(true);
-      setForm({ section: '', row: '', type: '', note: '' });
+      setLocation(null);
+      setType('');
+      setNote('');
       setTimeout(() => setSubmitted(false), 4000);
     }
   };
@@ -70,52 +68,22 @@ const CongregationView: React.FC<{
   }
 
   return (
-    <div className="card space-y-4">
-      <h2 className="font-bold text-primary text-lg">Need Help?</h2>
-      <p className="text-gray-500 text-sm">Let the Welcome Team know and they'll come to you.</p>
+    <div className="card space-y-5">
+      <div>
+        <h2 className="font-bold text-primary text-lg">Need Help?</h2>
+        <p className="text-gray-500 text-sm mt-0.5">
+          Tap your approximate seat area, then tell us what you need.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Section */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-            Section
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {SECTIONS.map((s) => (
-              <button
-                key={s.name}
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, section: s.name, row: '' }))}
-                className={`py-3 rounded-xl font-semibold text-sm transition-all ${
-                  form.section === s.name
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
 
-        {/* Row number */}
+        {/* Floor plan location picker */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-            Row Number
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            📍 Where are you sitting?
           </label>
-          <select
-            value={form.row}
-            onChange={(e) => setForm((f) => ({ ...f, row: parseInt(e.target.value) || '' }))}
-            className="select-field"
-            disabled={!form.section}
-          >
-            <option value="">Select row...</option>
-            {Array.from({ length: maxRow }, (_, i) => i + 1).map((r) => (
-              <option key={r} value={r}>
-                Row {r}
-              </option>
-            ))}
-          </select>
+          <FloorPlanPicker value={location} onChange={setLocation} />
         </div>
 
         {/* Request type */}
@@ -124,32 +92,32 @@ const CongregationView: React.FC<{
             What do you need?
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {REQUEST_TYPES.map((type) => (
+            {REQUEST_TYPES.map((t) => (
               <button
-                key={type}
+                key={t}
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, type }))}
+                onClick={() => setType(t)}
                 className={`py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
-                  form.type === type
+                  type === t
                     ? 'bg-primary text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {type}
+                {t}
               </button>
             ))}
           </div>
         </div>
 
         {/* Note (for "Other") */}
-        {form.type === 'Other' && (
+        {type === 'Other' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Please describe
             </label>
             <textarea
-              value={form.note}
-              onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               placeholder="Tell us what you need..."
               rows={3}
               className="input-field resize-none"
@@ -160,7 +128,7 @@ const CongregationView: React.FC<{
         {/* Submit */}
         <button
           type="submit"
-          disabled={!form.section || !form.row || !form.type || submitting}
+          disabled={!location || !type || submitting}
           className="btn-primary w-full"
         >
           {submitting ? 'Sending...' : 'Send Request'}

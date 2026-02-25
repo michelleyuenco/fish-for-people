@@ -39,6 +39,7 @@ export function useRequests(serviceId: string) {
     async (payload: {
       section: SectionName;
       row: number;
+      areaLabel?: string;
       type: RequestType;
       note: string;
     }): Promise<boolean> => {

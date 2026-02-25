@@ -17,6 +17,7 @@ function firestoreDocToRequest(id: string, data: Record<string, unknown>): Servi
     id,
     section: data.section as SectionName,
     row: data.row as number,
+    areaLabel: data.areaLabel ? (data.areaLabel as string) : undefined,
     type: data.type as RequestType,
     note: (data.note as string) || '',
     status: data.status as RequestStatus,
@@ -62,6 +63,7 @@ export class RequestService {
     payload: {
       section: SectionName;
       row: number;
+      areaLabel?: string;
       type: RequestType;
       note: string;
     }
@@ -70,6 +72,7 @@ export class RequestService {
     const docRef = await addDoc(col, {
       section: payload.section,
       row: payload.row,
+      ...(payload.areaLabel ? { areaLabel: payload.areaLabel } : {}),
       type: payload.type,
       note: payload.note,
       status: 'pending' as RequestStatus,
