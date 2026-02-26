@@ -84,14 +84,27 @@ export const CountInput: React.FC<CountInputProps> = ({
     };
   }, []);
 
+  /**
+   * Trigger a short haptic pulse on devices that support the Web Vibration API.
+   * Supported on Android (Chrome / Samsung Browser / Firefox).
+   * Silently ignored on iOS Safari, which does not implement navigator.vibrate().
+   */
+  const triggerHaptic = (durationMs = 8) => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(durationMs);
+    }
+  };
+
   const increment = () => {
     if (disabled) return;
+    triggerHaptic(8);
     onChange(value + 1);
     showToast(`${label} +1`);
   };
 
   const decrement = () => {
     if (disabled || value <= 0) return;
+    triggerHaptic(6);
     onChange(value - 1);
     showToast(`${label} −1`);
   };
