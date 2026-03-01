@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
-import { ZONE_NAMES, type ZoneCounts } from '../../domain/models/Headcount';
+import { ZONE_NAMES, type ZoneName, type ZoneCounts } from '../../domain/models/Headcount';
 import { calculateTotal } from '../../domain/rules/headcountRules';
+import { SECTION_TOTALS } from '../../domain/constants/seating';
 
 interface HeadcountPageProps {
   serviceId: string;
 }
+
+// Color accent per zone — distinct so users can identify by color even at a glance
+const ZONE_COLORS: Record<ZoneName, 'blue' | 'emerald' | 'violet' | 'amber' | 'slate'> = {
+  left: 'blue',
+  middle: 'emerald',
+  right: 'violet',
+  production: 'amber',
+  outside: 'slate',
+};
 
 const EMPTY_COUNTS: ZoneCounts = {
   left: 0,
@@ -15,6 +25,30 @@ const EMPTY_COUNTS: ZoneCounts = {
   production: 0,
   outside: 0,
 };
+
+// ─── Count Mode ───────────────────────────────────────────────────────────────
+type CountMode = 'people' | 'empty-seats';
+
+/**
+ * Zones with fixed seat capacity (main hall sections).
+ * In empty-seat mode, the counter enters vacant seats; we derive occupied count.
+ */
+const HALL_ZONE_TOTALS: Partial<Record<ZoneName, number>> = {
+  left:   SECTION_TOTALS.left,   // 97
+  middle: SECTION_TOTALS.middle, // 181
+  right:  SECTION_TOTALS.right,  // 90
+};
+
+/** Convert empty-seat inputs to people counts before submission. */
+function emptySeatsToPeople(emptyCounts: ZoneCounts): ZoneCounts {
+  return {
+    left:       Math.max(0, (HALL_ZONE_TOTALS.left   ?? 0) - emptyCounts.left),
+    middle:     Math.max(0, (HALL_ZONE_TOTALS.middle  ?? 0) - emptyCounts.middle),
+    right:      Math.max(0, (HALL_ZONE_TOTALS.right   ?? 0) - emptyCounts.right),
+    production: emptyCounts.production, // no fixed capacity — still direct people count
+    outside:    emptyCounts.outside,
+  };
+}
 
 // ─── Counter Form ─────────────────────────────────────────────────────────────
 const CounterForm: React.FC<{
@@ -30,7 +64,10 @@ const CounterForm: React.FC<{
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState(false);
 
-  const total = calculateTotal(counts);
+  // In people mode, total is a straight sum.
+  // In empty-seat mode, total is derived from capacity − empty.
+  const peopleCounts = mode === 'empty-seats' ? emptySeatsToPeople(counts) : counts;
+  const total = calculateTotal(peopleCounts);
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +269,12 @@ const CounterForm: React.FC<{
 
         {/* Total */}
         <div className="flex items-center justify-between px-4 py-3 bg-primary/10 rounded-xl">
-          <span className="font-semibold text-primary text-sm">Total</span>
+          <div>
+            <span className="font-semibold text-primary text-sm">Total</span>
+            {mode === 'empty-seats' && (
+              <span className="block text-[10px] text-primary/60">converted to occupied</span>
+            )}
+          </div>
           <span className="font-bold text-primary text-xl">{total}</span>
         </div>
 

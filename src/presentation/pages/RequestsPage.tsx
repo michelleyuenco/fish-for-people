@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
+import { FloorPlanPicker } from '../components/FloorPlanPicker';
+import type { FloorPlanSelection } from '../components/FloorPlanPicker';
 import { REQUEST_TYPES } from '../../domain/models/Request';
 import type { RequestType, ServiceRequest } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
@@ -13,12 +15,6 @@ interface RequestsPageProps {
 }
 
 // ─── Congregation Submit Form ─────────────────────────────────────────────────
-interface SubmitFormState {
-  section: SectionName | '';
-  row: number | '';
-  type: RequestType | '';
-  note: string;
-}
 
 interface LastSubmission {
   section: SectionName;
@@ -57,9 +53,6 @@ const CongregationView: React.FC<{
   const [submitted, setSubmitted] = useState(false);
   const [lastSubmission, setLastSubmission] = useState<LastSubmission | null>(null);
   const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
-
-  const selectedSection = SECTIONS.find((s) => s.name === form.section);
-  const maxRow = selectedSection ? selectedSection.rows : 14;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,7 +228,7 @@ const CongregationView: React.FC<{
           </div>
         </div>
 
-        {/* Row number */}
+        {/* Floor plan location picker */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">
             Row Number
@@ -302,7 +295,7 @@ const CongregationView: React.FC<{
           <div className="grid grid-cols-3 gap-2">
             {REQUEST_TYPES.map((type) => (
               <button
-                key={type}
+                key={t}
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, type }))}
                 aria-label={type}
@@ -323,7 +316,7 @@ const CongregationView: React.FC<{
         </div>
 
         {/* Note (for "Other") */}
-        {form.type === 'Other' && (
+        {type === 'Other' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Please describe

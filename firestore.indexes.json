@@ -15,13 +15,6 @@
         { "fieldPath": "counterName", "order": "ASCENDING" },
         { "fieldPath": "submittedAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "confirmedCounts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "confirmedAt", "order": "DESCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []

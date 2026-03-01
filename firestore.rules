@@ -1,8 +1,52 @@
 rules_version = '2';
+// Fish for People — Saddleback Church HK Welcome Team App
+// This is an internal church service app with no user authentication.
+// Rules are intentionally open but include data validation to prevent corruption.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+
+    // ── Active service config ──────────────────────────────────────────────
+    match /config/active {
+      allow read:  if true;
+      allow write: if true; // Welcome Team sets the active service
+    }
+
+    // ── Service documents ──────────────────────────────────────────────────
+    match /services/{serviceId} {
       allow read, write: if true;
+
+      // Seats: toggled by Welcome Team during service
+      match /seats/{seatId} {
+        allow read: if true;
+        allow write: if true
+          && request.resource.data.keys().hasAll(['section','row','col','occupied'])
+          && request.resource.data.occupied is bool;
+      }
+
+      // Needs requests: submitted by congregation, resolved by Welcome Team
+      match /requests/{requestId} {
+        allow read: if true;
+        allow create: if true
+          && request.resource.data.keys().hasAll(['section','row','type','status','createdAt'])
+          && request.resource.data.status == 'pending';
+        allow update: if true; // Allow resolve / status changes
+        allow delete: if false; // Never delete — keep audit trail
+      }
+
+      // Headcount entries: submitted by two independent counters
+      match /headcounts/{entryId} {
+        allow read: if true;
+        allow create: if true
+          && request.resource.data.keys().hasAll(['counterName','total','submittedAt']);
+        allow update: if false; // Immutable once submitted
+        allow delete: if false;
+      }
+
+      // Confirmed attendance counts: locked once both counters agree
+      match /confirmedCounts/{date} {
+        allow read:  if true;
+        allow write: if true; // Set when both counts confirmed
+      }
     }
   }
 }

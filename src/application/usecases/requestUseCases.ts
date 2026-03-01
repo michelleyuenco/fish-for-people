@@ -6,6 +6,7 @@ export interface SubmitRequestPayload {
   serviceId: string;
   section: SectionName;
   row: number;
+  areaLabel?: string;
   type: RequestType;
   note: string;
 }
@@ -15,6 +16,7 @@ export async function submitRequest(payload: SubmitRequestPayload): Promise<stri
   return service.submitRequest(payload.serviceId, {
     section: payload.section,
     row: payload.row,
+    areaLabel: payload.areaLabel,
     type: payload.type,
     note: payload.note,
   });
