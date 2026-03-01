@@ -1,14 +1,36 @@
 rules_version = '2';
 // Fish for People — Saddleback Church HK Welcome Team App
-// This is an internal church service app with no user authentication.
-// Rules are intentionally open but include data validation to prevent corruption.
+// Internal church service app — no user authentication.
+// Rules are open (no auth) but validate data shape to prevent corruption.
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Helper functions ───────────────────────────────────────────────────
+    function isValidSection(s) {
+      return s in ['left', 'middle', 'right'];
+    }
+
+    function isValidRequestType(t) {
+      return t in [
+        'Pen',
+        'Sermon Notes',
+        'Offering Envelope',
+        'Offering Envelope (Dream Now)',
+        'Voiceover Device',
+        'Prayer',
+        'Other'
+      ];
+    }
+
+    function isValidRequestStatus(s) {
+      return s in ['pending', 'resolved'];
+    }
 
     // ── Active service config ──────────────────────────────────────────────
     match /config/active {
       allow read:  if true;
-      allow write: if true; // Welcome Team sets the active service
+      allow write: if true;
     }
 
     // ── Service documents ──────────────────────────────────────────────────
@@ -18,34 +40,52 @@ service cloud.firestore {
       // Seats: toggled by Welcome Team during service
       match /seats/{seatId} {
         allow read: if true;
-        allow write: if true
-          && request.resource.data.keys().hasAll(['section','row','col','occupied'])
+        allow write: if request.resource.data.keys().hasAll(['section', 'row', 'col', 'occupied'])
+          && request.resource.data.section is string
+          && request.resource.data.row is int
+          && request.resource.data.col is int
           && request.resource.data.occupied is bool;
       }
 
       // Needs requests: submitted by congregation, resolved by Welcome Team
       match /requests/{requestId} {
         allow read: if true;
-        allow create: if true
-          && request.resource.data.keys().hasAll(['section','row','type','status','createdAt'])
+
+        allow create: if request.resource.data.keys().hasAll(['section', 'row', 'type', 'quantity', 'note', 'status', 'createdAt'])
+          && isValidSection(request.resource.data.section)
+          && request.resource.data.row is int
+          && request.resource.data.row >= 1
+          && isValidRequestType(request.resource.data.type)
+          && request.resource.data.quantity is int
+          && request.resource.data.quantity >= 1
+          && request.resource.data.quantity <= 20
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 500
           && request.resource.data.status == 'pending';
-        allow update: if true; // Allow resolve / status changes
-        allow delete: if false; // Never delete — keep audit trail
+
+        allow update: if request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'resolvedAt'])
+          && isValidRequestStatus(request.resource.data.status);
+
+        allow delete: if false; // Keep audit trail
       }
 
       // Headcount entries: submitted by two independent counters
       match /headcounts/{entryId} {
         allow read: if true;
-        allow create: if true
-          && request.resource.data.keys().hasAll(['counterName','total','submittedAt']);
+        allow create: if request.resource.data.keys().hasAll(['counterName', 'total', 'submittedAt'])
+          && request.resource.data.counterName is string
+          && request.resource.data.counterName.size() >= 1
+          && request.resource.data.total is int
+          && request.resource.data.total >= 0;
         allow update: if false; // Immutable once submitted
         allow delete: if false;
       }
 
-      // Confirmed attendance counts: locked once both counters agree
+      // Confirmed attendance: locked once both counters agree
       match /confirmedCounts/{date} {
         allow read:  if true;
-        allow write: if true; // Set when both counts confirmed
+        allow write: if true;
       }
     }
   }
