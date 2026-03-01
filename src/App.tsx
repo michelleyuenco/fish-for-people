@@ -6,7 +6,8 @@ import { RequestsPage } from './presentation/pages/RequestsPage';
 import { HeadcountPage } from './presentation/pages/HeadcountPage';
 import { useService } from './application/hooks/useService';
 import { useRequests } from './application/hooks/useRequests';
-import type { TabName } from './presentation/components/NavBar';
+import { useHeadcount } from './application/hooks/useHeadcount';
+import type { TabName, HeadcountStatus } from './presentation/components/NavBar';
 import type { UserRole } from './domain/models/Service';
 
 const ROLE_STORAGE_KEY = 'fish-for-people:role';
@@ -18,6 +19,14 @@ const AppWithService: React.FC<{
 }> = ({ role, onChangeRole }) => {
   const { serviceId, loading: serviceLoading } = useService();
   const { pendingCount } = useRequests(serviceId);
+  const { counterA, counterB, discrepancies } = useHeadcount(serviceId);
+
+  const headcountStatus: HeadcountStatus = (() => {
+    if (!counterA && !counterB) return 'idle';
+    if (discrepancies.length > 0) return 'discrepancy';
+    if (counterA && counterB) return 'ready';
+    return 'one-submitted';
+  })();
 
   const [activeTab, setActiveTab] = useState<TabName>(
     role === 'congregation' ? 'requests' : 'seats'
@@ -58,6 +67,8 @@ const AppWithService: React.FC<{
       pendingRequestCount={pendingCount}
       role={role}
       title={getPageTitle()}
+      onChangeRole={onChangeRole}
+      headcountStatus={headcountStatus}
     >
       {/* Content */}
       {activeTab === 'seats' && role === 'welcome-team' && (
@@ -69,16 +80,6 @@ const AppWithService: React.FC<{
       {activeTab === 'headcount' && (
         <HeadcountPage serviceId={serviceId} />
       )}
-
-      {/* Change role link at bottom */}
-      <div className="text-center">
-        <button
-          onClick={onChangeRole}
-          className="text-xs text-gray-400 underline py-2"
-        >
-          Switch role
-        </button>
-      </div>
     </AppLayout>
   );
 };

@@ -41,14 +41,14 @@ export function useRequests(serviceId: string) {
       row: number;
       type: RequestType;
       note: string;
-    }): Promise<boolean> => {
+    }): Promise<{ success: boolean; requestId?: string }> => {
       setSubmitting(true);
       try {
-        await submitRequest({ serviceId, ...payload });
-        return true;
+        const requestId = await submitRequest({ serviceId, ...payload });
+        return { success: true, requestId };
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to submit request'));
-        return false;
+        return { success: false };
       } finally {
         setSubmitting(false);
       }
@@ -81,6 +81,7 @@ export function useRequests(serviceId: string) {
 
   return {
     requests,
+    allRequests: requests,
     pendingRequests,
     resolvedRequests,
     pendingCount,

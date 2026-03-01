@@ -34,16 +34,24 @@ export const SeatCell: React.FC<SeatCellProps> = ({
     ? 'bg-occupied'
     : 'bg-success';
 
+  const statusLabel = hasPendingRequest
+    ? 'request pending'
+    : seat.occupied
+    ? 'occupied'
+    : 'available';
+
   return (
     <button
       onClick={handleClick}
       disabled={!canToggle || isToggling}
-      aria-label={`Seat ${seat.id}: ${hasPendingRequest ? 'request pending' : seat.occupied ? 'occupied' : 'available'}`}
+      aria-label={`Row ${seat.row} seat ${seat.col}: ${statusLabel}`}
+      aria-pressed={seat.occupied}
       className={`
-        w-5 h-5 rounded-sm flex-shrink-0 transition-all
+        w-5 h-5 rounded-sm flex-shrink-0 transition-all duration-150
         ${colorClass}
-        ${canToggle && !isToggling ? 'cursor-pointer active:scale-90 hover:opacity-80' : 'cursor-default'}
-        ${isToggling ? 'opacity-50' : ''}
+        ${canToggle && !isToggling ? 'cursor-pointer hover:opacity-80 hover:scale-110 active:scale-75' : 'cursor-default'}
+        ${isToggling ? 'scale-75 opacity-60 animate-pulse' : ''}
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary
       `}
     />
   );

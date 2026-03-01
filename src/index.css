@@ -65,6 +65,15 @@
   }
 }
 
+/* Large text accessibility mode */
+html.large-text {
+  font-size: 18px;
+}
+
+html.large-text .nav-tab {
+  font-size: 0.875rem;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 4px;
