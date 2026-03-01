@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
-import { ZONE_NAMES, type ZoneName, type ZoneCounts } from '../../domain/models/Headcount';
+import { ZONE_NAMES, type ZoneCounts } from '../../domain/models/Headcount';
 import { calculateTotal } from '../../domain/rules/headcountRules';
 import { SECTION_TOTALS } from '../../domain/constants/seating';
 
@@ -23,24 +23,102 @@ const EMPTY_COUNTS: ZoneCounts = {
  * Zones with fixed seat capacity (main hall sections).
  * In empty-seat mode, the counter enters vacant seats; we derive occupied count.
  */
-const HALL_ZONE_TOTALS: Partial<Record<ZoneName, number>> = {
-  left:   SECTION_TOTALS.left,   // 97
-  middle: SECTION_TOTALS.middle, // 181
-  right:  SECTION_TOTALS.right,  // 90
+
+
+// ─── Counter Form ─────────────────────────────────────────────────────────────
+
+/**
+ * Capacity mode: for each hall section, user counts:
+ *   - emptySeats: seats with nobody sitting
+ *   - doubleSeats: seats where one person holds a child (counts as 2)
+ * Occupied people = capacity - emptySeats + doubleSeats
+ */
+interface CapacityAdjustments {
+  left:   { empty: number; double: number };
+  middle: { empty: number; double: number };
+  right:  { empty: number; double: number };
+}
+
+const EMPTY_ADJUSTMENTS: CapacityAdjustments = {
+  left:   { empty: 0, double: 0 },
+  middle: { empty: 0, double: 0 },
+  right:  { empty: 0, double: 0 },
 };
 
-/** Convert empty-seat inputs to people counts before submission. */
-function emptySeatsToPeople(emptyCounts: ZoneCounts): ZoneCounts {
+function capacityToPeople(adj: CapacityAdjustments): Pick<ZoneCounts, 'left' | 'middle' | 'right'> {
   return {
-    left:       Math.max(0, (HALL_ZONE_TOTALS.left   ?? 0) - emptyCounts.left),
-    middle:     Math.max(0, (HALL_ZONE_TOTALS.middle  ?? 0) - emptyCounts.middle),
-    right:      Math.max(0, (HALL_ZONE_TOTALS.right   ?? 0) - emptyCounts.right),
-    production: emptyCounts.production, // no fixed capacity — still direct people count
-    outside:    emptyCounts.outside,
+    left:   Math.max(0, SECTION_TOTALS.left   - adj.left.empty   + adj.left.double),
+    middle: Math.max(0, SECTION_TOTALS.middle  - adj.middle.empty + adj.middle.double),
+    right:  Math.max(0, SECTION_TOTALS.right   - adj.right.empty  + adj.right.double),
   };
 }
 
-// ─── Counter Form ─────────────────────────────────────────────────────────────
+/** Small +/− stepper used inside the capacity blocks */
+const MiniStepper: React.FC<{
+  label: string;
+  emoji: string;
+  value: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+}> = ({ label, emoji, value, onChange, disabled }) => (
+  <div className="flex flex-col items-center gap-1">
+    <span className="text-xs font-semibold text-gray-500 text-center leading-tight">{emoji} {label}</span>
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onPointerDown={() => !disabled && value > 0 && onChange(Math.max(0, value - 1))}
+        disabled={disabled || value <= 0}
+        className="w-9 h-9 rounded-lg bg-gray-100 text-gray-600 text-lg font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all select-none touch-none"
+        aria-label={`Decrease ${label}`}
+      >−</button>
+      <span className="w-9 text-center font-bold text-xl text-primary tabular-nums">{value}</span>
+      <button
+        type="button"
+        onPointerDown={() => !disabled && onChange(value + 1)}
+        disabled={disabled}
+        className="w-9 h-9 rounded-lg bg-primary text-white text-lg font-bold flex items-center justify-center active:scale-90 transition-all disabled:opacity-40 select-none touch-none"
+        aria-label={`Increase ${label}`}
+      >+</button>
+    </div>
+  </div>
+);
+
+/** One hall-section block in capacity mode */
+const CapacityBlock: React.FC<{
+  sectionKey: 'left' | 'middle' | 'right';
+  label: string;
+  capacity: number;
+  adj: { empty: number; double: number };
+  onChange: (key: 'empty' | 'double', v: number) => void;
+  disabled?: boolean;
+}> = ({ sectionKey: _sectionKey, label, capacity, adj, onChange, disabled }) => {
+  const people = Math.max(0, capacity - adj.empty + adj.double);
+  return (
+    <div className="rounded-xl border-2 border-primary/30 bg-white overflow-hidden">
+      {/* Header */}
+      <div className="px-3 pt-2.5 pb-2 bg-primary/5 flex items-center justify-between">
+        <span className="text-base font-extrabold tracking-wide uppercase text-primary">{label}</span>
+        <div className="text-right">
+          <span className="text-2xl font-bold text-primary">{people}</span>
+          <span className="text-xs text-gray-400 ml-1">/ {capacity}</span>
+        </div>
+      </div>
+      {/* Formula hint */}
+      <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+        <p className="text-[10px] text-gray-400 text-center">
+          {capacity} seats − {adj.empty} empty + {adj.double} doubles = <strong className="text-primary">{people} people</strong>
+        </p>
+      </div>
+      {/* Steppers */}
+      <div className="flex gap-4 justify-center px-3 py-4">
+        <MiniStepper label="Empty seats" emoji="🪑" value={adj.empty} onChange={(v) => onChange('empty', v)} disabled={disabled} />
+        <div className="w-px bg-gray-200" />
+        <MiniStepper label="Doubles (child)" emoji="👶" value={adj.double} onChange={(v) => onChange('double', v)} disabled={disabled} />
+      </div>
+    </div>
+  );
+};
+
 const CounterForm: React.FC<{
   onSubmit: (name: string, counts: ZoneCounts) => Promise<{ success: boolean; errors: string[] }>;
   submitting: boolean;
@@ -49,16 +127,22 @@ const CounterForm: React.FC<{
   const COUNTER_NAME_KEY = 'fish-for-people:counter-name';
   const [name, setName] = useState(() => localStorage.getItem(COUNTER_NAME_KEY) ?? '');
   const [counts, setCounts] = useState<ZoneCounts>({ ...EMPTY_COUNTS });
+  const [adj, setAdj] = useState<CapacityAdjustments>({ ...EMPTY_ADJUSTMENTS });
   const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [mode, setMode] = useState<'people' | 'empty-seats'>('people');
+  const [mode, setMode] = useState<'people' | 'capacity'>('people');
   const [showHelp, setShowHelp] = useState(false);
 
-  // In people mode, total is a straight sum.
-  // In empty-seat mode, total is derived from capacity − empty.
-  const peopleCounts = mode === 'empty-seats' ? emptySeatsToPeople(counts) : counts;
-  const total = calculateTotal(peopleCounts);
+  // Derive final ZoneCounts depending on mode
+  const finalCounts: ZoneCounts = mode === 'capacity'
+    ? {
+        ...counts,  // production + outside stay as direct people counts
+        ...capacityToPeople(adj),
+      }
+    : counts;
+
+  const total = calculateTotal(finalCounts);
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +155,7 @@ const CounterForm: React.FC<{
   };
 
   const handleConfirmSubmit = async () => {
-    const result = await onSubmit(name.trim(), counts);
+    const result = await onSubmit(name.trim(), finalCounts);
     if (result.success) {
       localStorage.setItem(COUNTER_NAME_KEY, name.trim());
       setReviewing(false);
@@ -92,10 +176,14 @@ const CounterForm: React.FC<{
             <span className="text-gray-500">Counter</span>
             <span className="font-semibold text-gray-800">{name}</span>
           </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Mode</span>
+            <span className="font-semibold text-gray-800">{mode === 'capacity' ? '🪑 Capacity mode' : '👥 People mode'}</span>
+          </div>
           {ZONE_NAMES.map(({ key, label }) => (
             <div key={key} className="flex justify-between text-sm">
               <span className="text-gray-500">{label}</span>
-              <span className="font-bold text-gray-800">{counts[key]}</span>
+              <span className="font-bold text-gray-800">{finalCounts[key]}</span>
             </div>
           ))}
           <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
@@ -104,19 +192,8 @@ const CounterForm: React.FC<{
           </div>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setReviewing(false)}
-            className="btn-outline flex-1"
-          >
-            ← Edit
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirmSubmit}
-            disabled={submitting}
-            className="btn-primary flex-1"
-          >
+          <button type="button" onClick={() => setReviewing(false)} className="btn-outline flex-1">← Edit</button>
+          <button type="button" onClick={handleConfirmSubmit} disabled={submitting} className="btn-primary flex-1">
             {submitting ? 'Submitting...' : 'Confirm & Submit ✓'}
           </button>
         </div>
@@ -132,14 +209,12 @@ const CounterForm: React.FC<{
           <h3 className="font-bold text-primary text-lg">Count Submitted!</h3>
           <p className="text-gray-500 text-sm mt-1">Counted by: <strong>{name}</strong></p>
         </div>
-
-        {/* Zone breakdown receipt */}
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Your Count</p>
           {ZONE_NAMES.map(({ key, label }) => (
             <div key={key} className="flex justify-between text-sm">
               <span className="text-gray-500">{label}</span>
-              <span className="font-bold text-gray-800">{counts[key]}</span>
+              <span className="font-bold text-gray-800">{finalCounts[key]}</span>
             </div>
           ))}
           <div className="border-t border-gray-200 pt-2 flex justify-between font-bold">
@@ -147,16 +222,12 @@ const CounterForm: React.FC<{
             <span className="text-primary text-xl">{total}</span>
           </div>
         </div>
-
-        <p className="text-xs text-center text-gray-400">
-          Waiting for the second counter to submit...
-        </p>
-
+        <p className="text-xs text-center text-gray-400">Waiting for the second counter to submit...</p>
         <button
           onClick={() => {
             setSubmitted(false);
             setCounts({ ...EMPTY_COUNTS });
-            // Keep name for convenience
+            setAdj({ ...EMPTY_ADJUSTMENTS });
           }}
           className="btn-outline w-full"
         >
@@ -168,37 +239,58 @@ const CounterForm: React.FC<{
 
   return (
     <div className="card">
+      {/* Header + mode toggle */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-primary text-base">Enter Your Count</h3>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setMode((m) => m === 'people' ? 'empty-seats' : 'people')}
-            className="text-xs text-gray-400 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-all"
-            aria-label="Toggle count mode"
-          >
-            {mode === 'people' ? '\u{1F465} People' : '\u{1F4BA} Empty'}
-          </button>
-          <button
-            type="button"
             onClick={() => setShowHelp((v) => !v)}
             className="text-xs text-gray-400 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-all"
-            aria-label="How does this work?"
           >
             {showHelp ? '✕ Close' : '? Help'}
           </button>
         </div>
       </div>
+
+      {/* Help */}
       {showHelp && (
         <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 mb-4 space-y-1.5 text-xs text-gray-600">
-          <p className="font-bold text-accent">How the two-counter system works:</p>
-          <p>🔢 Two team members count independently — this catches mistakes.</p>
-          <p>📊 After both submit, the app compares your counts zone by zone.</p>
+          <p className="font-bold text-accent">Two-counter system:</p>
+          <p>🔢 Two team members count independently to catch mistakes.</p>
+          <p>📊 After both submit, the app compares counts zone by zone.</p>
           <p>✅ If counts match, the coordinator confirms the total.</p>
-          <p>⚠️ If counts differ, both counters recount the discrepant zones.</p>
-          <p className="text-gray-400 mt-1">Use a different name from the other counter (e.g., "Sarah" vs "Tom").</p>
+          <p>⚠️ If they differ, both counters recount the flagged zones.</p>
+          <p className="text-gray-400 mt-1">Use a different name from the other counter.</p>
         </div>
       )}
+
+      {/* Mode toggle — prominent */}
+      <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-4">
+        <button
+          type="button"
+          onClick={() => setMode('people')}
+          className={`flex-1 py-3 text-sm font-semibold flex flex-col items-center gap-0.5 transition-all ${
+            mode === 'people' ? 'bg-primary text-white' : 'bg-white text-gray-500'
+          }`}
+        >
+          <span className="text-lg">👥</span>
+          <span>People Mode</span>
+          <span className={`text-[10px] ${mode === 'people' ? 'text-white/70' : 'text-gray-400'}`}>Count each person</span>
+        </button>
+        <div className="w-px bg-gray-200" />
+        <button
+          type="button"
+          onClick={() => setMode('capacity')}
+          className={`flex-1 py-3 text-sm font-semibold flex flex-col items-center gap-0.5 transition-all ${
+            mode === 'capacity' ? 'bg-primary text-white' : 'bg-white text-gray-500'
+          }`}
+        >
+          <span className="text-lg">🪑</span>
+          <span>Capacity Mode</span>
+          <span className={`text-[10px] ${mode === 'capacity' ? 'text-white/70' : 'text-gray-400'}`}>Count empties &amp; doubles</span>
+        </button>
+      </div>
 
       <form onSubmit={handleReview} className="space-y-4">
         {/* Counter name */}
@@ -219,61 +311,93 @@ const CounterForm: React.FC<{
           />
           {existingCounterNames.length > 0 && (
             <datalist id="counter-names">
-              {existingCounterNames.map((n) => (
-                <option key={n} value={n} />
-              ))}
+              {existingCounterNames.map((n) => <option key={n} value={n} />)}
             </datalist>
           )}
         </div>
 
-        {/* Zone counts — 2-column layout for compact viewing */}
-        <div className="grid grid-cols-2 gap-2">
-          {ZONE_NAMES.slice(0, 4).map(({ key, label }) => (
-            <div key={key} className="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-xl p-3 gap-1">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onPointerDown={() => {
-                    if (!submitting && counts[key] > 0) setCounts((c) => ({ ...c, [key]: Math.max(0, c[key] - 1) }));
-                  }}
-                  disabled={submitting || counts[key] <= 0}
-                  aria-label={`Decrease ${label}`}
-                  className="w-9 h-9 rounded-lg bg-gray-200 text-gray-700 text-lg font-bold flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
-                >
-                  −
-                </button>
-                <span className="w-10 text-center font-bold text-xl text-primary tabular-nums">{counts[key]}</span>
-                <button
-                  type="button"
-                  onPointerDown={() => {
-                    if (!submitting) setCounts((c) => ({ ...c, [key]: c[key] + 1 }));
-                  }}
-                  disabled={submitting}
-                  aria-label={`Increase ${label}`}
-                  className="w-9 h-9 rounded-lg bg-primary text-white text-lg font-bold flex items-center justify-center active:scale-90 transition-all disabled:opacity-40"
-                >
-                  +
-                </button>
-              </div>
+        {/* ── PEOPLE MODE ── */}
+        {mode === 'people' && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              {(['left', 'middle', 'right', 'production'] as const).map((key) => {
+                const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
+                return (
+                  <CountInput
+                    key={key}
+                    label={zoneInfo.label}
+                    value={counts[key]}
+                    onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
+                    disabled={submitting}
+                    colorAccent={key === 'left' ? 'blue' : key === 'middle' ? 'emerald' : key === 'right' ? 'violet' : 'amber'}
+                  />
+                );
+              })}
             </div>
-          ))}
-        </div>
-        {/* Outside zone — full width */}
-        <CountInput
-          key="outside"
-          label="Outside"
-          value={counts.outside}
-          onChange={(val) => setCounts((c) => ({ ...c, outside: val }))}
-          disabled={submitting}
-        />
+            <CountInput
+              label="Outside"
+              value={counts.outside}
+              onChange={(val) => setCounts((c) => ({ ...c, outside: val }))}
+              disabled={submitting}
+              colorAccent="slate"
+            />
+          </>
+        )}
+
+        {/* ── CAPACITY MODE ── */}
+        {mode === 'capacity' && (
+          <>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 text-xs text-blue-700 space-y-0.5">
+              <p className="font-bold">How capacity mode works:</p>
+              <p>Count <strong>empty seats</strong> 🪑 and <strong>seats with 2 people</strong> 👶 per section.</p>
+              <p className="text-blue-500">Formula: <em>capacity − empty + doubles = people</em></p>
+            </div>
+
+            <div className="space-y-3">
+              {(['left', 'middle', 'right'] as const).map((key) => {
+                const labels: Record<string, string> = { left: 'Left', middle: 'Middle', right: 'Right' };
+                return (
+                  <CapacityBlock
+                    key={key}
+                    sectionKey={key}
+                    label={labels[key]}
+                    capacity={SECTION_TOTALS[key]}
+                    adj={adj[key]}
+                    onChange={(field, v) =>
+                      setAdj((a) => ({ ...a, [key]: { ...a[key], [field]: v } }))
+                    }
+                    disabled={submitting}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Production + Outside still as direct count */}
+            <p className="text-xs text-gray-400 text-center">Production Room &amp; Outside: count directly</p>
+            <div className="grid grid-cols-2 gap-3">
+              {(['production', 'outside'] as const).map((key) => {
+                const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
+                return (
+                  <CountInput
+                    key={key}
+                    label={zoneInfo.label}
+                    value={counts[key]}
+                    onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
+                    disabled={submitting}
+                    colorAccent={key === 'production' ? 'amber' : 'slate'}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* Total */}
         <div className="flex items-center justify-between px-4 py-3 bg-primary/10 rounded-xl">
           <div>
             <span className="font-semibold text-primary text-sm">Total</span>
-            {mode === 'empty-seats' && (
-              <span className="block text-[10px] text-primary/60">converted to occupied</span>
+            {mode === 'capacity' && (
+              <span className="block text-[10px] text-primary/60">calculated from capacity</span>
             )}
           </div>
           <span className="font-bold text-primary text-xl">{total}</span>
@@ -282,17 +406,11 @@ const CounterForm: React.FC<{
         {/* Errors */}
         {formErrors.length > 0 && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl space-y-1">
-            {formErrors.map((e, i) => (
-              <p key={i}>⚠ {e}</p>
-            ))}
+            {formErrors.map((e, i) => <p key={i}>⚠ {e}</p>)}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="btn-primary w-full"
-        >
+        <button type="submit" disabled={submitting} className="btn-primary w-full">
           Review Count →
         </button>
       </form>
