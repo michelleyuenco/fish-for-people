@@ -1,18 +1,23 @@
 import type { SectionName } from './Seat';
 
-export type RequestType = 'Pen' | 'Sermon Notes' | 'Water' | 'Bible' | 'Prayer' | 'Other';
+export type RequestType =
+  | 'Pen'
+  | 'Sermon Notes'
+  | 'Offering Envelope'
+  | 'Offering Envelope (Dream Now)'
+  | 'Voiceover Device'
+  | 'Prayer'
+  | 'Other';
+
 export type RequestStatus = 'pending' | 'resolved';
 
 export interface ServiceRequest {
   id: string;
   section: SectionName;
   row: number;
-  /**
-   * Human-readable area label from the floor-plan picker, e.g. "Front", "Middle", "Back".
-   * Present when submitted via FloorPlanPicker; absent for legacy row-dropdown submissions.
-   */
   areaLabel?: string;
   type: RequestType;
+  quantity: number;
   note: string;
   status: RequestStatus;
   createdAt: Date;
@@ -22,8 +27,18 @@ export interface ServiceRequest {
 export const REQUEST_TYPES: RequestType[] = [
   'Pen',
   'Sermon Notes',
-  'Water',
-  'Bible',
+  'Offering Envelope',
+  'Offering Envelope (Dream Now)',
+  'Voiceover Device',
   'Prayer',
   'Other',
+];
+
+/** Types where quantity makes sense (physical items) */
+export const QUANTIFIABLE_TYPES: RequestType[] = [
+  'Pen',
+  'Sermon Notes',
+  'Offering Envelope',
+  'Offering Envelope (Dream Now)',
+  'Voiceover Device',
 ];

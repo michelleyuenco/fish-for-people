@@ -41,6 +41,7 @@ export function useRequests(serviceId: string) {
       row: number;
       areaLabel?: string;
       type: RequestType;
+      quantity: number;
       note: string;
     }): Promise<{ success: boolean; requestId?: string }> => {
       setSubmitting(true);

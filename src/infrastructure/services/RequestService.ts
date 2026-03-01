@@ -19,14 +19,11 @@ function firestoreDocToRequest(id: string, data: Record<string, unknown>): Servi
     row: data.row as number,
     areaLabel: data.areaLabel ? (data.areaLabel as string) : undefined,
     type: data.type as RequestType,
+    quantity: typeof data.quantity === 'number' ? data.quantity : 1,
     note: (data.note as string) || '',
     status: data.status as RequestStatus,
-    createdAt: data.createdAt
-      ? (data.createdAt as Timestamp).toDate()
-      : new Date(),
-    resolvedAt: data.resolvedAt
-      ? (data.resolvedAt as Timestamp).toDate()
-      : null,
+    createdAt: data.createdAt ? (data.createdAt as Timestamp).toDate() : new Date(),
+    resolvedAt: data.resolvedAt ? (data.resolvedAt as Timestamp).toDate() : null,
   };
 }
 
@@ -34,9 +31,6 @@ export class RequestService {
   private db: Firestore;
   constructor(db: Firestore) { this.db = db; }
 
-  /**
-   * Subscribe to real-time request updates for a service.
-   */
   subscribeToRequests(
     serviceId: string,
     onUpdate: (requests: ServiceRequest[]) => void,
@@ -55,9 +49,6 @@ export class RequestService {
     );
   }
 
-  /**
-   * Submit a new request to Firestore.
-   */
   async submitRequest(
     serviceId: string,
     payload: {
@@ -65,6 +56,7 @@ export class RequestService {
       row: number;
       areaLabel?: string;
       type: RequestType;
+      quantity: number;
       note: string;
     }
   ): Promise<string> {
@@ -74,6 +66,7 @@ export class RequestService {
       row: payload.row,
       ...(payload.areaLabel ? { areaLabel: payload.areaLabel } : {}),
       type: payload.type,
+      quantity: payload.quantity,
       note: payload.note,
       status: 'pending' as RequestStatus,
       createdAt: serverTimestamp(),
@@ -82,9 +75,6 @@ export class RequestService {
     return docRef.id;
   }
 
-  /**
-   * Mark a request as resolved.
-   */
   async resolveRequest(serviceId: string, requestId: string): Promise<void> {
     const col = requestsCollection(this.db, serviceId);
     const requestDoc = doc(col, requestId);

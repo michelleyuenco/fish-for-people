@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
-import { REQUEST_TYPES } from '../../domain/models/Request';
+import { REQUEST_TYPES, QUANTIFIABLE_TYPES } from '../../domain/models/Request';
 import type { RequestType, ServiceRequest } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
 import { SECTIONS } from '../../domain/constants/seating';
@@ -18,6 +18,7 @@ interface LastSubmission {
   section: SectionName;
   row: number;
   type: RequestType;
+  quantity: number;
   note: string;
 }
 
@@ -26,6 +27,7 @@ interface SubmitFormState {
   section: SectionName | '';
   row: number | '';
   type: RequestType | '';
+  quantity: number;
   note: string;
 }
 const LOCATION_STORAGE_KEY = 'fish-for-people:last-location';
@@ -44,7 +46,7 @@ function getSavedLocation(): { section: SectionName; row: number } | null {
 
 const CongregationView: React.FC<{
   serviceId: string;
-  onSubmit: (payload: { section: SectionName; row: number; type: RequestType; note: string }) => Promise<{ success: boolean; requestId?: string }>;
+  onSubmit: (payload: { section: SectionName; row: number; type: RequestType; quantity: number; note: string }) => Promise<{ success: boolean; requestId?: string }>;
   submitting: boolean;
   allRequests: ReturnType<typeof useRequests>['allRequests'];
 }> = ({ onSubmit, submitting, allRequests }) => {
@@ -53,6 +55,7 @@ const CongregationView: React.FC<{
     section: savedLocation?.section ?? '',
     row: savedLocation?.row ?? '',
     type: '',
+    quantity: 1,
     note: '',
   });
   const maxRow = form.section
@@ -69,6 +72,7 @@ const CongregationView: React.FC<{
       section: form.section as SectionName,
       row: form.row as number,
       type: form.type as RequestType,
+      quantity: form.quantity,
       note: form.note,
     };
     const result = await onSubmit(payload);
@@ -78,7 +82,7 @@ const CongregationView: React.FC<{
       setLastSubmission(payload);
       setSubmittedRequestId(result.requestId ?? null);
       setSubmitted(true);
-      setForm({ section: '', row: '', type: '', note: '' });
+      setForm({ section: '', row: '', type: '', quantity: 1, note: '' });
     }
   };
 
@@ -121,7 +125,7 @@ const CongregationView: React.FC<{
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Your Request</p>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">What</span>
-            <span className="font-semibold text-gray-800">{lastSubmission.type}</span>
+            <span className="font-semibold text-gray-800">{lastSubmission.quantity > 1 ? `${lastSubmission.quantity}x ` : ''}{lastSubmission.type}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Where</span>
@@ -217,23 +221,7 @@ const CongregationView: React.FC<{
             </div>
             <div className="text-center text-[10px] text-gray-400 mt-2">← Entrance → Exit</div>
           </div>
-          {/* Also allow tapping labels below for clarity */}
-          <div className="grid grid-cols-3 gap-2">
-            {SECTIONS.map((s) => (
-              <button
-                key={s.name}
-                type="button"
-                onClick={() => setForm((f: SubmitFormState) => ({ ...f, section: s.name, row: '' }))}
-                className={`py-3 rounded-xl font-semibold text-sm transition-all ${
-                  form.section === s.name
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+
         </div>
 
         {/* Floor plan location picker */}
@@ -323,6 +311,30 @@ const CongregationView: React.FC<{
           </div>
         </div>
 
+        {/* Quantity stepper */}
+        {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              🔢 How many?
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                disabled={form.quantity <= 1}
+                className="w-11 h-11 rounded-xl bg-gray-100 text-gray-700 text-xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
+                aria-label="Decrease quantity"
+              >−</button>
+              <span className="text-2xl font-bold text-primary w-10 text-center">{form.quantity}</span>
+              <button
+                type="button"
+                onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all"
+                aria-label="Increase quantity"
+              >+</button>
+            </div>
+          </div>
+        )}
         {/* Note (for "Other") */}
         {form.type === 'Other' && (
           <div>

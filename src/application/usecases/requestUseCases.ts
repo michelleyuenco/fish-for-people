@@ -8,6 +8,7 @@ export interface SubmitRequestPayload {
   row: number;
   areaLabel?: string;
   type: RequestType;
+  quantity: number;
   note: string;
 }
 
@@ -18,6 +19,7 @@ export async function submitRequest(payload: SubmitRequestPayload): Promise<stri
     row: payload.row,
     areaLabel: payload.areaLabel,
     type: payload.type,
+    quantity: payload.quantity,
     note: payload.note,
   });
 }
