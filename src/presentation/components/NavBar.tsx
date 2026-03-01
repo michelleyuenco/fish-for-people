@@ -41,7 +41,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           // Hide seat tracker for congregation
-          if (tab.id === 'seats' && role === 'congregation') {
+          if ((tab.id === 'seats' || tab.id === 'headcount') && role === 'congregation') {
             return null;
           }
           const badgeCount = tab.id === 'requests' ? pendingRequestCount : 0;
