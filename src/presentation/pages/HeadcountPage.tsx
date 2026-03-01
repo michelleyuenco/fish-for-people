@@ -61,24 +61,27 @@ const MiniStepper: React.FC<{
   onChange: (v: number) => void;
   disabled?: boolean;
 }> = ({ label, emoji, value, onChange, disabled }) => (
-  <div className="flex flex-col items-center gap-1">
-    <span className="text-xs font-semibold text-gray-500 text-center leading-tight">{emoji} {label}</span>
-    <div className="flex items-center gap-1">
+  <div className="flex-1 flex flex-col items-center gap-1.5">
+    <span className="text-xs font-semibold text-gray-500 text-center leading-tight">{emoji}<br/>{label}</span>
+    <span className="text-2xl font-bold text-primary tabular-nums">{value}</span>
+    <div className="flex gap-1.5 w-full">
       <button
         type="button"
         onPointerDown={() => !disabled && value > 0 && onChange(Math.max(0, value - 1))}
         disabled={disabled || value <= 0}
-        className="w-9 h-9 rounded-lg bg-gray-100 text-gray-600 text-lg font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all select-none touch-none"
+        className="w-10 h-12 rounded-xl bg-gray-100 text-gray-600 text-2xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all select-none touch-none flex-none"
         aria-label={`Decrease ${label}`}
       >−</button>
-      <span className="w-9 text-center font-bold text-xl text-primary tabular-nums">{value}</span>
       <button
         type="button"
         onPointerDown={() => !disabled && onChange(value + 1)}
         disabled={disabled}
-        className="w-9 h-9 rounded-lg bg-primary text-white text-lg font-bold flex items-center justify-center active:scale-90 transition-all disabled:opacity-40 select-none touch-none"
+        className="flex-1 h-12 rounded-xl bg-primary text-white font-bold flex flex-col items-center justify-center active:scale-90 transition-all disabled:opacity-40 select-none touch-none"
         aria-label={`Increase ${label}`}
-      >+</button>
+      >
+        <span className="text-2xl leading-none">+</span>
+        <span className="text-[10px] opacity-80">ADD</span>
+      </button>
     </div>
   </div>
 );
@@ -105,15 +108,15 @@ const CapacityBlock: React.FC<{
       </div>
       {/* Formula hint */}
       <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-        <p className="text-[10px] text-gray-400 text-center">
-          {capacity} seats − {adj.empty} empty + {adj.double} doubles = <strong className="text-primary">{people} people</strong>
+        <p className="text-[10px] text-gray-400 text-center break-words">
+          {capacity} − {adj.empty} empty + {adj.double} doubles = <strong className="text-primary">{people}</strong>
         </p>
       </div>
       {/* Steppers */}
-      <div className="flex gap-4 justify-center px-3 py-4">
+      <div className="flex gap-2 px-3 py-4">
         <MiniStepper label="Empty seats" emoji="🪑" value={adj.empty} onChange={(v) => onChange('empty', v)} disabled={disabled} />
-        <div className="w-px bg-gray-200" />
-        <MiniStepper label="Doubles (child)" emoji="👶" value={adj.double} onChange={(v) => onChange('double', v)} disabled={disabled} />
+        <div className="w-px bg-gray-200 self-stretch" />
+        <MiniStepper label="Doubles" emoji="👶" value={adj.double} onChange={(v) => onChange('double', v)} disabled={disabled} />
       </div>
     </div>
   );
@@ -319,7 +322,7 @@ const CounterForm: React.FC<{
         {/* ── PEOPLE MODE ── */}
         {mode === 'people' && (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {(['left', 'middle', 'right', 'production'] as const).map((key) => {
                 const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
                 return (

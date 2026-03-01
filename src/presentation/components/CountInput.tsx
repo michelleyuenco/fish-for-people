@@ -55,7 +55,7 @@ export const CountInput: React.FC<CountInputProps> = ({
     <div className={`rounded-xl border-2 bg-white overflow-hidden ${hasDiscrepancy ? 'border-warning' : colors.border}`}>
       {/* Label + current count */}
       <div className={`px-3 pt-2.5 pb-2 flex items-center justify-between ${hasDiscrepancy ? 'bg-warning/10' : 'bg-gray-50'}`}>
-        <span className={`text-base font-extrabold tracking-wide uppercase ${hasDiscrepancy ? 'text-warning' : colors.label}`}>
+        <span className={`text-sm font-extrabold tracking-wide uppercase truncate max-w-[55%] ${hasDiscrepancy ? 'text-warning' : colors.label}`}>
           {label}
           {hasDiscrepancy && <span className="ml-1.5">⚠</span>}
         </span>
@@ -67,7 +67,7 @@ export const CountInput: React.FC<CountInputProps> = ({
           min={0}
           inputMode="numeric"
           aria-label={`${label} count`}
-          className={`w-16 text-center font-bold text-xl border-2 rounded-xl py-0.5
+          className={`w-14 text-center font-bold text-lg border-2 rounded-xl py-0.5
                       focus:outline-none focus:ring-2 bg-white
                       ${hasDiscrepancy
                         ? 'border-warning text-warning focus:ring-warning/30'
