@@ -1,8 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
-import { FloorPlanPicker } from '../components/FloorPlanPicker';
-import type { FloorPlanSelection } from '../components/FloorPlanPicker';
 import { REQUEST_TYPES } from '../../domain/models/Request';
 import type { RequestType, ServiceRequest } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
@@ -23,6 +21,13 @@ interface LastSubmission {
   note: string;
 }
 
+
+interface SubmitFormState {
+  section: SectionName | '';
+  row: number | '';
+  type: RequestType | '';
+  note: string;
+}
 const LOCATION_STORAGE_KEY = 'fish-for-people:last-location';
 
 function getSavedLocation(): { section: SectionName; row: number } | null {
@@ -50,6 +55,9 @@ const CongregationView: React.FC<{
     type: '',
     note: '',
   });
+  const maxRow = form.section
+    ? (SECTIONS.find((s) => s.name === form.section)?.rows ?? 14)
+    : 14;
   const [submitted, setSubmitted] = useState(false);
   const [lastSubmission, setLastSubmission] = useState<LastSubmission | null>(null);
   const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
@@ -175,7 +183,7 @@ const CongregationView: React.FC<{
           <button
             type="button"
             className="text-xs text-gray-400 underline"
-            onClick={() => setForm((f) => ({ ...f, section: '', row: '' }))}
+            onClick={() => setForm((f: SubmitFormState) => ({ ...f, section: '', row: '' }))}
           >
             Change
           </button>
@@ -196,7 +204,7 @@ const CongregationView: React.FC<{
                 <button
                   key={s.name}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, section: s.name, row: '' }))}
+                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, section: s.name, row: '' }))}
                   className={`flex-1 rounded-lg text-xs font-bold transition-all flex items-center justify-center ${
                     form.section === s.name
                       ? 'bg-primary text-white shadow-sm'
@@ -215,7 +223,7 @@ const CongregationView: React.FC<{
               <button
                 key={s.name}
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, section: s.name, row: '' }))}
+                onClick={() => setForm((f: SubmitFormState) => ({ ...f, section: s.name, row: '' }))}
                 className={`py-3 rounded-xl font-semibold text-sm transition-all ${
                   form.section === s.name
                     ? 'bg-primary text-white'
@@ -240,7 +248,7 @@ const CongregationView: React.FC<{
           </label>
           <select
             value={form.row}
-            onChange={(e) => setForm((f) => ({ ...f, row: parseInt(e.target.value) || '' }))}
+            onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, row: parseInt(e.target.value) || '' }))}
             className="select-field"
             disabled={!form.section}
           >
@@ -274,7 +282,7 @@ const CongregationView: React.FC<{
               type="button"
               onClick={() => {
                 const sectionLabel = (form.section as string).charAt(0).toUpperCase() + (form.section as string).slice(1);
-                setForm((f) => ({
+                setForm((f: SubmitFormState) => ({
                   ...f,
                   row: 1,
                   note: f.note || `I'm in the ${sectionLabel} section but not sure of my row.`,
@@ -295,9 +303,9 @@ const CongregationView: React.FC<{
           <div className="grid grid-cols-3 gap-2">
             {REQUEST_TYPES.map((type) => (
               <button
-                key={t}
+                key={type}
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, type }))}
+                onClick={() => setForm((f: SubmitFormState) => ({ ...f, type }))}
                 aria-label={type}
                 aria-pressed={form.type === type}
                 className={`py-3 px-2 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-1 min-h-[72px] ${
@@ -316,7 +324,7 @@ const CongregationView: React.FC<{
         </div>
 
         {/* Note (for "Other") */}
-        {type === 'Other' && (
+        {form.type === 'Other' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Please describe
@@ -327,7 +335,7 @@ const CongregationView: React.FC<{
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, note: preset }))}
+                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: preset }))}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                     form.note === preset
                       ? 'bg-primary text-white border-primary'
@@ -340,7 +348,7 @@ const CongregationView: React.FC<{
             </div>
             <textarea
               value={form.note}
-              onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+              onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
               placeholder="Or describe what you need..."
               rows={2}
               className="input-field resize-none"

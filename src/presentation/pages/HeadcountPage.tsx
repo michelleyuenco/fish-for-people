@@ -9,14 +9,6 @@ interface HeadcountPageProps {
   serviceId: string;
 }
 
-// Color accent per zone — distinct so users can identify by color even at a glance
-const ZONE_COLORS: Record<ZoneName, 'blue' | 'emerald' | 'violet' | 'amber' | 'slate'> = {
-  left: 'blue',
-  middle: 'emerald',
-  right: 'violet',
-  production: 'amber',
-  outside: 'slate',
-};
 
 const EMPTY_COUNTS: ZoneCounts = {
   left: 0,
@@ -26,8 +18,6 @@ const EMPTY_COUNTS: ZoneCounts = {
   outside: 0,
 };
 
-// ─── Count Mode ───────────────────────────────────────────────────────────────
-type CountMode = 'people' | 'empty-seats';
 
 /**
  * Zones with fixed seat capacity (main hall sections).
@@ -62,6 +52,7 @@ const CounterForm: React.FC<{
   const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [mode, setMode] = useState<'people' | 'empty-seats'>('people');
   const [showHelp, setShowHelp] = useState(false);
 
   // In people mode, total is a straight sum.
@@ -179,14 +170,24 @@ const CounterForm: React.FC<{
     <div className="card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-primary text-base">Enter Your Count</h3>
-        <button
-          type="button"
-          onClick={() => setShowHelp((v) => !v)}
-          className="text-xs text-gray-400 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-all"
-          aria-label="How does this work?"
-        >
-          {showHelp ? '✕ Close' : '? Help'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMode((m) => m === 'people' ? 'empty-seats' : 'people')}
+            className="text-xs text-gray-400 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-all"
+            aria-label="Toggle count mode"
+          >
+            {mode === 'people' ? '\u{1F465} People' : '\u{1F4BA} Empty'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowHelp((v) => !v)}
+            className="text-xs text-gray-400 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-all"
+            aria-label="How does this work?"
+          >
+            {showHelp ? '✕ Close' : '? Help'}
+          </button>
+        </div>
       </div>
       {showHelp && (
         <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 mb-4 space-y-1.5 text-xs text-gray-600">
