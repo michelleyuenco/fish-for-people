@@ -53,7 +53,8 @@ export const CountInput: React.FC<CountInputProps> = ({
 
   return (
     <div className={`rounded-xl border-2 bg-white overflow-hidden ${hasDiscrepancy ? 'border-warning' : colors.border}`}>
-      <div className={`px-3 pt-2.5 pb-1 flex items-center justify-between ${hasDiscrepancy ? 'bg-warning/10' : 'bg-gray-50'}`}>
+      {/* Label + current count */}
+      <div className={`px-3 pt-2.5 pb-2 flex items-center justify-between ${hasDiscrepancy ? 'bg-warning/10' : 'bg-gray-50'}`}>
         <span className={`text-base font-extrabold tracking-wide uppercase ${hasDiscrepancy ? 'text-warning' : colors.label}`}>
           {label}
           {hasDiscrepancy && <span className="ml-1.5">⚠</span>}
@@ -74,7 +75,10 @@ export const CountInput: React.FC<CountInputProps> = ({
                       }`}
         />
       </div>
-      <div className="flex gap-2 px-3 pb-3 pt-2">
+
+      {/* Big ADD button + small minus */}
+      <div className="flex gap-2 px-3 pb-3 pt-1">
+        {/* Minus — compact, secondary */}
         <button
           type="button"
           onPointerDown={() => !disabled && value > 0 && startRepeat(decrement)}
@@ -82,9 +86,12 @@ export const CountInput: React.FC<CountInputProps> = ({
           onPointerLeave={stopRepeat}
           disabled={disabled || value <= 0}
           aria-label={`Decrease ${label}`}
-          className="flex-none w-14 h-14 rounded-xl bg-gray-100 text-gray-500 text-2xl font-bold
-                     flex items-center justify-center active:scale-95 transition-all disabled:opacity-30 select-none touch-none"
+          className="flex-none w-14 h-24 rounded-xl bg-gray-100 text-gray-500 text-3xl font-bold
+                     flex items-center justify-center active:scale-95 transition-all
+                     disabled:opacity-30 select-none touch-none"
         >−</button>
+
+        {/* Add — tall, dominant, thumb-friendly */}
         <button
           type="button"
           onPointerDown={() => !disabled && startRepeat(increment)}
@@ -92,12 +99,13 @@ export const CountInput: React.FC<CountInputProps> = ({
           onPointerLeave={stopRepeat}
           disabled={disabled}
           aria-label={`Increase ${label}`}
-          className={`flex-1 h-14 rounded-xl text-white text-2xl font-bold
-                      flex items-center justify-center gap-2
-                      active:scale-95 transition-all disabled:opacity-40 select-none touch-none shadow-sm ${colors.bg}`}
+          className={`flex-1 h-24 rounded-xl text-white font-bold
+                      flex flex-col items-center justify-center gap-1
+                      active:scale-95 transition-all disabled:opacity-40
+                      select-none touch-none shadow-md ${colors.bg}`}
         >
-          <span className="text-2xl leading-none">+</span>
-          <span className="text-sm font-semibold opacity-90">Add</span>
+          <span className="text-4xl leading-none">+</span>
+          <span className="text-sm font-semibold opacity-90 tracking-wide">ADD</span>
         </button>
       </div>
     </div>
