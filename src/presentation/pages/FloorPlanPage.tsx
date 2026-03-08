@@ -142,37 +142,16 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
 
       {/* Main content: floor plan + sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Floor plan area */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Section availability bar — hidden in landscape (shown as overlay instead) */}
-          {!isLandscape && (
-            <div className="flex justify-center gap-6 py-2 sm:py-3 flex-shrink-0">
-              {SECTIONS.map((section) => (
-                <div key={section.name} className="text-center">
-                  <div className="text-xs sm:text-sm font-bold text-primary">{t(`floorPlan.${section.name}`)}</div>
-                  <div className="text-xl sm:text-2xl font-bold text-success">{sectionAvailability[section.name]}</div>
-                  <div className="text-[10px] sm:text-xs text-gray-400">{t('floorPlanPage.available')}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Landscape: section availability as compact left-side overlay */}
-          {isLandscape && (
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-2 py-2">
-              {SECTIONS.map((section) => (
-                <div key={section.name} className="text-center">
-                  <div className="text-[10px] font-bold text-primary leading-tight">{t(`floorPlan.${section.name}`)}</div>
-                  <div className="text-lg font-bold text-success leading-tight">{sectionAvailability[section.name]}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Scaled map container */}
+        {/* Floor plan area — map takes all available space, stats/legend float in gutter */}
+        <div className="flex-1 overflow-hidden relative">
+          {/* Scaled map container — full area with small padding for overlays */}
           <div
             ref={containerRef}
-            className="flex-1 flex items-center justify-center overflow-hidden px-2 sm:px-4"
+            className={`absolute inset-0 flex items-center justify-center overflow-hidden ${
+              isLandscape
+                ? 'pl-16 pr-2 py-1'
+                : 'pt-9 pb-6 px-2'
+            }`}
           >
             <div
               ref={mapRef}
@@ -192,43 +171,60 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
             </div>
           </div>
 
-          {/* Legend — fixed bar in portrait, floating overlay in landscape */}
+          {/* Section availability — compact overlay in gutter space */}
           {isLandscape ? (
-            <div className="absolute right-2 bottom-2 z-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-1.5 flex flex-col gap-1 text-[10px] text-gray-500">
+            /* Landscape: vertical strip on the left */
+            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1 bg-white/90 backdrop-blur-sm rounded-xl shadow px-2 py-1.5">
+              {SECTIONS.map((section) => (
+                <div key={section.name} className="text-center">
+                  <div className="text-[9px] font-bold text-primary leading-tight">{t(`floorPlan.${section.name}`)}</div>
+                  <div className="text-base font-bold text-success leading-tight">{sectionAvailability[section.name]}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Portrait: horizontal strip across top gutter */
+            <div className="absolute top-0 inset-x-0 z-10 flex justify-center gap-4 sm:gap-6 py-1">
+              {SECTIONS.map((section) => (
+                <div key={section.name} className="text-center">
+                  <div className="text-[10px] sm:text-xs font-bold text-primary leading-tight">{t(`floorPlan.${section.name}`)}</div>
+                  <div className="text-base sm:text-lg font-bold text-success leading-none">{sectionAvailability[section.name]}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Legend — compact overlay in gutter space */}
+          {isLandscape ? (
+            <div className="absolute right-1.5 bottom-1.5 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow px-2 py-1 flex flex-col gap-0.5 text-[9px] text-gray-500">
               <span className="flex items-center gap-1">
-                <span
-                  className="w-6 h-2 rounded-sm inline-block"
-                  style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }}
-                />
+                <span className="w-5 h-1.5 rounded-sm inline-block" style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }} />
                 {t('floorPlanPage.legendSuggested')} → {t('floorPlanPage.legendAvailable')}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
+                <span className="w-2 h-2 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
+                <span className="w-2 h-2 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
+                <span className="w-2 h-2 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-3 sm:gap-5 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-500 flex-wrap justify-center flex-shrink-0 px-2">
+            <div className="absolute bottom-0 inset-x-0 z-10 flex items-center gap-2 sm:gap-4 py-1 text-[9px] sm:text-[10px] text-gray-500 flex-wrap justify-center px-2">
               <span className="flex items-center gap-1">
-                <span
-                  className="w-8 h-2.5 sm:w-10 sm:h-3 rounded-sm inline-block"
-                  style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }}
-                />
+                <span className="w-6 h-2 sm:w-8 sm:h-2.5 rounded-sm inline-block" style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }} />
                 {t('floorPlanPage.legendSuggested')} → {t('floorPlanPage.legendAvailable')}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
               </span>
             </div>
           )}
