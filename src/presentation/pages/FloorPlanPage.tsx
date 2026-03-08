@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useLayoutEffect, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
@@ -13,6 +13,20 @@ interface FloorPlanPageProps {
 
 const REQUEST_URL = `${window.location.origin}/requests`;
 
+function useIsLandscape() {
+  const [landscape, setLandscape] = useState(
+    () => window.innerWidth > window.innerHeight
+  );
+  useEffect(() => {
+    const mql = window.matchMedia('(orientation: landscape)');
+    const handler = (e: MediaQueryListEvent) => setLandscape(e.matches);
+    setLandscape(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+  return landscape;
+}
+
 export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
   const { t } = useTranslation();
   const {
@@ -26,13 +40,14 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
   } = useSeats(serviceId);
 
   const navigate = useNavigate();
+  const isLandscape = useIsLandscape();
 
   const recommendedSeats = useMemo(
     () => getRecommendedSeats(seatMap, 3),
     [seatMap]
   );
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const occupancyPct = Math.round((occupiedCount / TOTAL_SEATS) * 100);
 
   // Scale-to-fit: measure container vs map natural size
@@ -64,7 +79,7 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
     const ro = new ResizeObserver(recalcScale);
     ro.observe(container);
     return () => ro.disconnect();
-  }, [recalcScale, sidebarOpen]);
+  }, [recalcScale, sidebarOpen, isLandscape]);
 
   if (loading) {
     return (
@@ -128,17 +143,31 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
       {/* Main content: floor plan + sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Floor plan area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Section availability bar — outside scale, always readable */}
-          <div className="flex justify-center gap-6 py-2 sm:py-3 flex-shrink-0">
-            {SECTIONS.map((section) => (
-              <div key={section.name} className="text-center">
-                <div className="text-xs sm:text-sm font-bold text-primary">{t(`floorPlan.${section.name}`)}</div>
-                <div className="text-xl sm:text-2xl font-bold text-success">{sectionAvailability[section.name]}</div>
-                <div className="text-[10px] sm:text-xs text-gray-400">{t('floorPlanPage.available')}</div>
-              </div>
-            ))}
-          </div>
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Section availability bar — hidden in landscape (shown as overlay instead) */}
+          {!isLandscape && (
+            <div className="flex justify-center gap-6 py-2 sm:py-3 flex-shrink-0">
+              {SECTIONS.map((section) => (
+                <div key={section.name} className="text-center">
+                  <div className="text-xs sm:text-sm font-bold text-primary">{t(`floorPlan.${section.name}`)}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-success">{sectionAvailability[section.name]}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-400">{t('floorPlanPage.available')}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Landscape: section availability as compact left-side overlay */}
+          {isLandscape && (
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-2 py-2">
+              {SECTIONS.map((section) => (
+                <div key={section.name} className="text-center">
+                  <div className="text-[10px] font-bold text-primary leading-tight">{t(`floorPlan.${section.name}`)}</div>
+                  <div className="text-lg font-bold text-success leading-tight">{sectionAvailability[section.name]}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Scaled map container */}
           <div
@@ -163,25 +192,46 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
             </div>
           </div>
 
-          {/* Legend — outside scale, always readable */}
-          <div className="flex items-center gap-3 sm:gap-5 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-500 flex-wrap justify-center flex-shrink-0 px-2">
-            <span className="flex items-center gap-1">
-              <span
-                className="w-8 h-2.5 sm:w-10 sm:h-3 rounded-sm inline-block"
-                style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }}
-              />
-              {t('floorPlanPage.legendSuggested')} → {t('floorPlanPage.legendAvailable')}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
-            </span>
-          </div>
+          {/* Legend — fixed bar in portrait, floating overlay in landscape */}
+          {isLandscape ? (
+            <div className="absolute right-2 bottom-2 z-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-1.5 flex flex-col gap-1 text-[10px] text-gray-500">
+              <span className="flex items-center gap-1">
+                <span
+                  className="w-6 h-2 rounded-sm inline-block"
+                  style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }}
+                />
+                {t('floorPlanPage.legendSuggested')} → {t('floorPlanPage.legendAvailable')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 sm:gap-5 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-500 flex-wrap justify-center flex-shrink-0 px-2">
+              <span className="flex items-center gap-1">
+                <span
+                  className="w-8 h-2.5 sm:w-10 sm:h-3 rounded-sm inline-block"
+                  style={{ background: 'linear-gradient(to right, rgba(34,197,94,1), rgba(34,197,94,0.5))' }}
+                />
+                {t('floorPlanPage.legendSuggested')} → {t('floorPlanPage.legendAvailable')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-blue-300 inline-block" /> {t('floorPlanPage.legendFamily')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-purple-300 inline-block" /> {t('floorPlanPage.legendVolunteer')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-occupied inline-block" /> {t('floorPlanPage.legendTaken')}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Sidebar toggle + panel */}
