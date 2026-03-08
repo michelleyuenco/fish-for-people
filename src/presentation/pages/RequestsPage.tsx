@@ -168,7 +168,7 @@ const CongregationView: React.FC<{
             </div>
             <div className="flex items-start gap-2">
               <span className="text-base leading-none mt-0.5">2️⃣</span>
-              <span>Choose what you need (pen, water, Bible…)</span>
+              <span>Choose what you need (pen, offering envelope, voiceover device…)</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-base leading-none mt-0.5">3️⃣</span>
@@ -463,7 +463,7 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
     sectionCounts.filter((s) => s.count > 0).forEach((s) => {
       lines.push(`  ${s.label}: ${s.count}`);
     });
-    lines.push(``, `— Saddleback Church HK Welcome Team`);
+    lines.push(``, `— Welcome Team`);
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);

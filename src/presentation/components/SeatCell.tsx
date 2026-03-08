@@ -27,17 +27,24 @@ export const SeatCell: React.FC<SeatCellProps> = ({
     }
   };
 
-  // Colour precedence: request pending (amber) > occupied (slate) > available (green)
+  // Colour precedence: request pending (amber) > occupied (slate) > reserved (blue/purple) > available (green)
+  const isReserved = seat.reservedFor !== 'none';
   const colorClass = hasPendingRequest
     ? 'bg-warning ring-1 ring-warning/60'
     : seat.occupied
     ? 'bg-occupied'
+    : seat.reservedFor === 'family'
+    ? 'bg-blue-300 ring-1 ring-blue-200/60'
+    : seat.reservedFor === 'volunteer'
+    ? 'bg-purple-300 ring-1 ring-purple-200/60'
     : 'bg-success';
 
   const statusLabel = hasPendingRequest
     ? 'request pending'
     : seat.occupied
     ? 'occupied'
+    : isReserved
+    ? `reserved for ${seat.reservedFor}`
     : 'available';
 
   return (

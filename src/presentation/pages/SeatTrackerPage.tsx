@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { SeatMap } from '../components/SeatMap';
+import { CinemaSeatMap } from '../components/CinemaSeatMap';
 import { useSeats } from '../../application/hooks/useSeats';
 import { useRequests } from '../../application/hooks/useRequests';
 import { SECTIONS, TOTAL_SEATS } from '../../domain/constants/seating';
-import type { SeatSummary } from '../../domain/models/Seat';
+import type { SeatSummary, ReservedFor } from '../../domain/models/Seat';
 
 /** Returns the section with the most available seats and the top 3 rows in that section */
 function getBestAvailable(summaries: SeatSummary[]): {
@@ -43,16 +43,22 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
     summaries,
     availableCount,
     occupiedCount,
+    reservedCount,
     sectionAvailability,
     loading,
     error,
     toggling,
     toggleSeat,
+    toggleReserved,
+    bulkOperating,
+    setAllSeats,
   } = useSeats(serviceId);
 
   const { pendingRequests } = useRequests(serviceId);
 
   const [activeSection, setActiveSection] = useState<'all' | 'left' | 'middle' | 'right'>('all');
+  const [confirmReset, setConfirmReset] = useState<'select-all' | 'deselect-all' | null>(null);
+  const [reserveMode, setReserveMode] = useState<ReservedFor | false>(false);
 
   // Build a set of row keys that have pending requests: "${section}-${row}"
   const pendingRequestRows = useMemo(() => {
@@ -81,6 +87,11 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
     }
   }, [loading, occupiedCount]);
   const arrivalsSinceLoad = initialOccupiedRef.current !== null ? occupiedCount - initialOccupiedRef.current : 0;
+
+  const handleBulkAction = async (occupied: boolean) => {
+    await setAllSeats(occupied);
+    setConfirmReset(null);
+  };
 
   if (loading) {
     return (
@@ -121,7 +132,7 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
           </div>
         )}
 
-        <div className="grid grid-cols-4 gap-1.5 text-center">
+        <div className="grid grid-cols-5 gap-1.5 text-center">
           <div className="bg-success/10 rounded-xl py-2">
             <div className="font-bold text-success text-lg">{availableCount}</div>
             <div className="text-[10px] text-gray-500">Available</div>
@@ -129,6 +140,10 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
           <div className="bg-occupied/20 rounded-xl py-2">
             <div className="font-bold text-occupied text-lg">{occupiedCount}</div>
             <div className="text-[10px] text-gray-500">Occupied</div>
+          </div>
+          <div className="bg-blue-300/15 rounded-xl py-2">
+            <div className="font-bold text-blue-500 text-lg">{reservedCount}</div>
+            <div className="text-[10px] text-gray-500">Reserved</div>
           </div>
           <div className="bg-primary/10 rounded-xl py-2">
             <div className="font-bold text-primary text-lg">{occupancyPct}%</div>
@@ -260,7 +275,7 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-primary text-base">Floor Plan</h2>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap justify-end">
             <span className="flex items-center gap-1">
               <span className="w-3 h-3 rounded-sm bg-success inline-block" /> Free
             </span>
@@ -268,23 +283,103 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
               <span className="w-3 h-3 rounded-sm bg-occupied inline-block" /> Taken
             </span>
             <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-blue-300 inline-block" /> Family
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-purple-300 inline-block" /> Volunteer
+            </span>
+            <span className="flex items-center gap-1">
               <span className="w-3 h-3 rounded-sm bg-warning inline-block" /> Request
             </span>
           </div>
         </div>
 
-        {/* Stage indicator */}
-        <div className="w-full bg-accent/20 border border-accent/40 text-accent text-xs font-semibold text-center py-1.5 rounded-lg mb-3">
-          ✝ STAGE / PULPIT ✝
+        {/* Reserve Mode Toggle */}
+        <div className="mb-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setReserveMode((v) => v === 'family' ? false : 'family')}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                reserveMode === 'family'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
+              }`}
+            >
+              <span>{reserveMode === 'family' ? '👨‍👩‍👧‍👦 Family Mode ON' : '👨‍👩‍👧‍👦 Reserve for Family'}</span>
+            </button>
+            <button
+              onClick={() => setReserveMode((v) => v === 'volunteer' ? false : 'volunteer')}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                reserveMode === 'volunteer'
+                  ? 'bg-purple-500 text-white shadow-md'
+                  : 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100'
+              }`}
+            >
+              <span>{reserveMode === 'volunteer' ? '🙋‍♂️ Volunteer Mode ON' : '🙋‍♂️ Reserve for Volunteer'}</span>
+            </button>
+          </div>
+          {reserveMode && (
+            <p className={`text-xs text-center mt-1.5 ${reserveMode === 'family' ? 'text-blue-500' : 'text-purple-500'}`}>
+              Tap seats to mark/unmark as reserved for {reserveMode === 'family' ? 'families' : 'volunteers'}
+            </p>
+          )}
         </div>
 
-        <SeatMap
-          seatMap={seatMap}
-          canToggle={true}
-          toggling={toggling}
-          onToggle={toggleSeat}
-          pendingRequestRows={pendingRequestRows}
-        />
+        <div className="overflow-x-auto -mx-4 px-4 pb-2">
+          <CinemaSeatMap
+            seatMap={seatMap}
+            canToggle={true}
+            toggling={toggling}
+            onToggle={reserveMode ? (seat) => toggleReserved(seat, reserveMode) : toggleSeat}
+            pendingRequestRows={pendingRequestRows}
+          />
+        </div>
+
+        {/* Select All / Deselect All */}
+        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+          {confirmReset === null ? (
+            <>
+              <button
+                onClick={() => setConfirmReset('select-all')}
+                disabled={bulkOperating}
+                className="flex-1 text-xs font-semibold py-2 px-3 rounded-lg bg-occupied/10 text-occupied hover:bg-occupied/20 transition-all disabled:opacity-50"
+              >
+                Select All Seats
+              </button>
+              <button
+                onClick={() => setConfirmReset('deselect-all')}
+                disabled={bulkOperating}
+                className="flex-1 text-xs font-semibold py-2 px-3 rounded-lg bg-success/10 text-success hover:bg-success/20 transition-all disabled:opacity-50"
+              >
+                Deselect All Seats
+              </button>
+            </>
+          ) : (
+            <div className="w-full bg-warning/10 border border-warning/30 rounded-xl p-3">
+              <p className="text-xs font-semibold text-warning mb-2">
+                {confirmReset === 'select-all'
+                  ? `Mark all ${TOTAL_SEATS} seats as occupied?`
+                  : `Clear all ${TOTAL_SEATS} seats to available?`}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleBulkAction(confirmReset === 'select-all')}
+                  disabled={bulkOperating}
+                  className="flex-1 text-xs font-bold py-2 rounded-lg bg-warning text-white hover:bg-warning/90 transition-all disabled:opacity-50"
+                >
+                  {bulkOperating ? 'Updating...' : 'Confirm'}
+                </button>
+                <button
+                  onClick={() => setConfirmReset(null)}
+                  disabled={bulkOperating}
+                  className="flex-1 text-xs font-semibold py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (

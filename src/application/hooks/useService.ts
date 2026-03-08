@@ -7,7 +7,9 @@ import {
 import { getFirestoreDb } from '../../infrastructure/firebase/firebaseConfig';
 import { activeConfigDoc } from '../../infrastructure/firebase/collections';
 
-const TODAY = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+// Use local date (not UTC) so the service ID matches the user's day
+const now = new Date();
+const TODAY = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const DEFAULT_SERVICE_ID = `service-${TODAY}`;
 
 export function useService() {

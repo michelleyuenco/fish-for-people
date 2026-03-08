@@ -1,4 +1,5 @@
 export type SectionName = 'left' | 'middle' | 'right';
+export type ReservedFor = 'none' | 'family' | 'volunteer';
 
 export interface Seat {
   id: string;           // format: "{section}-{row}-{col}"
@@ -6,6 +7,7 @@ export interface Seat {
   row: number;
   col: number;
   occupied: boolean;
+  reservedFor: ReservedFor;
   updatedAt: Date | null;
 }
 
@@ -15,4 +17,5 @@ export interface SeatSummary {
   totalSeats: number;
   availableSeats: number;
   occupiedSeats: number;
+  reservedSeats: number;
 }

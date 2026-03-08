@@ -1,6 +1,6 @@
 rules_version = '2';
-// Fish for People — Saddleback Church HK Welcome Team App
-// Internal church service app — no user authentication.
+// Fish for People — Welcome Team App
+// Internal service app — no user authentication.
 // Rules are open (no auth) but validate data shape to prevent corruption.
 
 service cloud.firestore {
@@ -44,7 +44,9 @@ service cloud.firestore {
           && request.resource.data.section is string
           && request.resource.data.row is int
           && request.resource.data.col is int
-          && request.resource.data.occupied is bool;
+          && request.resource.data.occupied is bool
+          && (!request.resource.data.keys().hasAny(['reservedFor'])
+              || request.resource.data.reservedFor in ['none', 'family', 'volunteer']);
       }
 
       // Needs requests: submitted by congregation, resolved by Welcome Team

@@ -76,6 +76,7 @@ const SectionColumn: React.FC<SectionColumnProps> = ({
                 row: rowNum,
                 col: colNum,
                 occupied: false,
+                reservedFor: 'none' as const,
                 updatedAt: null,
               };
 

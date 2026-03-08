@@ -142,7 +142,7 @@ export class HeadcountService {
         production: counterA.counts.production,
         outside: counterA.counts.outside,
         total: counterA.total,
-        submittedAt: counterA.submittedAt,
+        submittedAt: Timestamp.fromDate(counterA.submittedAt),
       },
       counterB: {
         counterName: counterB.counterName,
@@ -152,7 +152,7 @@ export class HeadcountService {
         production: counterB.counts.production,
         outside: counterB.counts.outside,
         total: counterB.total,
-        submittedAt: counterB.submittedAt,
+        submittedAt: Timestamp.fromDate(counterB.submittedAt),
       },
       confirmed: true,
       totals: {

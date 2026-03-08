@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
 import { ZONE_NAMES, type ZoneCounts } from '../../domain/models/Headcount';
@@ -28,74 +28,38 @@ const EMPTY_COUNTS: ZoneCounts = {
 // ─── Counter Form ─────────────────────────────────────────────────────────────
 
 /**
- * Capacity mode: for each hall section, user counts:
- *   - emptySeats: seats with nobody sitting
- *   - doubleSeats: seats where one person holds a child (counts as 2)
- * Occupied people = capacity - emptySeats + doubleSeats
+ * Capacity mode: for each hall section, user counts empty seats.
+ * Occupied people = capacity - emptySeats
  */
 interface CapacityAdjustments {
-  left:   { empty: number; double: number };
-  middle: { empty: number; double: number };
-  right:  { empty: number; double: number };
+  left: number;
+  middle: number;
+  right: number;
 }
 
 const EMPTY_ADJUSTMENTS: CapacityAdjustments = {
-  left:   { empty: 0, double: 0 },
-  middle: { empty: 0, double: 0 },
-  right:  { empty: 0, double: 0 },
+  left: 0,
+  middle: 0,
+  right: 0,
 };
 
 function capacityToPeople(adj: CapacityAdjustments): Pick<ZoneCounts, 'left' | 'middle' | 'right'> {
   return {
-    left:   Math.max(0, SECTION_TOTALS.left   - adj.left.empty   + adj.left.double),
-    middle: Math.max(0, SECTION_TOTALS.middle  - adj.middle.empty + adj.middle.double),
-    right:  Math.max(0, SECTION_TOTALS.right   - adj.right.empty  + adj.right.double),
+    left:   Math.max(0, SECTION_TOTALS.left   - adj.left),
+    middle: Math.max(0, SECTION_TOTALS.middle  - adj.middle),
+    right:  Math.max(0, SECTION_TOTALS.right   - adj.right),
   };
 }
 
-/** Small +/− stepper used inside the capacity blocks */
-const MiniStepper: React.FC<{
-  label: string;
-  emoji: string;
-  value: number;
-  onChange: (v: number) => void;
-  disabled?: boolean;
-}> = ({ label, emoji, value, onChange, disabled }) => (
-  <div className="flex-1 flex flex-col items-center gap-1.5">
-    <span className="text-xs font-semibold text-gray-500 text-center leading-tight">{emoji}<br/>{label}</span>
-    <span className="text-2xl font-bold text-primary tabular-nums">{value}</span>
-    <div className="flex gap-1.5 w-full">
-      <button
-        type="button"
-        onPointerDown={() => !disabled && value > 0 && onChange(Math.max(0, value - 1))}
-        disabled={disabled || value <= 0}
-        className="w-10 h-12 rounded-xl bg-gray-100 text-gray-600 text-2xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all select-none touch-none flex-none"
-        aria-label={`Decrease ${label}`}
-      >−</button>
-      <button
-        type="button"
-        onPointerDown={() => !disabled && onChange(value + 1)}
-        disabled={disabled}
-        className="flex-1 h-12 rounded-xl bg-primary text-white font-bold flex flex-col items-center justify-center active:scale-90 transition-all disabled:opacity-40 select-none touch-none"
-        aria-label={`Increase ${label}`}
-      >
-        <span className="text-2xl leading-none">+</span>
-        <span className="text-[10px] opacity-80">ADD</span>
-      </button>
-    </div>
-  </div>
-);
-
-/** One hall-section block in capacity mode */
+/** One hall-section block in capacity mode — single +/− net adjustment counter */
 const CapacityBlock: React.FC<{
-  sectionKey: 'left' | 'middle' | 'right';
   label: string;
   capacity: number;
-  adj: { empty: number; double: number };
-  onChange: (key: 'empty' | 'double', v: number) => void;
+  net: number;
+  onChange: (v: number) => void;
   disabled?: boolean;
-}> = ({ sectionKey: _sectionKey, label, capacity, adj, onChange, disabled }) => {
-  const people = Math.max(0, capacity - adj.empty + adj.double);
+}> = ({ label, capacity, net, onChange, disabled }) => {
+  const people = Math.max(0, capacity - net);
   return (
     <div className="rounded-xl border-2 border-primary/30 bg-white overflow-hidden">
       {/* Header */}
@@ -108,15 +72,30 @@ const CapacityBlock: React.FC<{
       </div>
       {/* Formula hint */}
       <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-        <p className="text-[10px] text-gray-400 text-center break-words">
-          {capacity} − {adj.empty} empty + {adj.double} doubles = <strong className="text-primary">{people}</strong>
+        <p className="text-[10px] text-gray-400 text-center">
+          {capacity} − {net} net = <strong className="text-primary">{people}</strong> people
         </p>
       </div>
-      {/* Steppers */}
-      <div className="flex gap-2 px-3 py-4">
-        <MiniStepper label="Empty seats" emoji="🪑" value={adj.empty} onChange={(v) => onChange('empty', v)} disabled={disabled} />
-        <div className="w-px bg-gray-200 self-stretch" />
-        <MiniStepper label="Doubles" emoji="👶" value={adj.double} onChange={(v) => onChange('double', v)} disabled={disabled} />
+      {/* +/− stepper — extra large for eyes-free tapping */}
+      <div className="flex items-center gap-3 px-4 py-4">
+        <button
+          type="button"
+          onPointerDown={() => !disabled && net > 0 && onChange(net - 1)}
+          disabled={disabled || net <= 0}
+          className="w-20 h-24 rounded-2xl bg-gray-100 text-gray-600 text-4xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all select-none touch-none flex-none"
+          aria-label={`Decrease net in ${label}`}
+        >−</button>
+        <div className="flex-1 flex flex-col items-center">
+          <span className="text-4xl font-bold text-primary tabular-nums">{net}</span>
+          <span className="text-xs text-gray-400">net</span>
+        </div>
+        <button
+          type="button"
+          onPointerDown={() => !disabled && onChange(net + 1)}
+          disabled={disabled}
+          className="w-20 h-24 rounded-2xl bg-primary text-white text-4xl font-bold flex items-center justify-center active:scale-90 transition-all disabled:opacity-40 select-none touch-none flex-none"
+          aria-label={`Increase net in ${label}`}
+        >+</button>
       </div>
     </div>
   );
@@ -127,15 +106,48 @@ const CounterForm: React.FC<{
   submitting: boolean;
   existingCounterNames: string[];
 }> = ({ onSubmit, submitting, existingCounterNames }) => {
-  const COUNTER_NAME_KEY = 'fish-for-people:counter-name';
-  const [name, setName] = useState(() => localStorage.getItem(COUNTER_NAME_KEY) ?? '');
-  const [counts, setCounts] = useState<ZoneCounts>({ ...EMPTY_COUNTS });
-  const [adj, setAdj] = useState<CapacityAdjustments>({ ...EMPTY_ADJUSTMENTS });
+  const COUNTS_KEY = 'fish-for-people:headcount-counts';
+  const ADJ_KEY = 'fish-for-people:headcount-adj';
+  const MODE_KEY = 'fish-for-people:headcount-mode';
+
+  const [counts, setCounts] = useState<ZoneCounts>(() => {
+    try {
+      const saved = localStorage.getItem(COUNTS_KEY);
+      return saved ? JSON.parse(saved) : { ...EMPTY_COUNTS };
+    } catch { return { ...EMPTY_COUNTS }; }
+  });
+  const [adj, setAdj] = useState<CapacityAdjustments>(() => {
+    try {
+      const saved = localStorage.getItem(ADJ_KEY);
+      return saved ? JSON.parse(saved) : { ...EMPTY_ADJUSTMENTS };
+    } catch { return { ...EMPTY_ADJUSTMENTS }; }
+  });
   const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [mode, setMode] = useState<'people' | 'capacity'>('people');
+  const [mode, setMode] = useState<'people' | 'capacity'>(() => {
+    const saved = localStorage.getItem(MODE_KEY);
+    return saved === 'capacity' ? 'capacity' : 'people';
+  });
   const [showHelp, setShowHelp] = useState(false);
+
+  // Persist counts, adj, and mode to localStorage
+  useEffect(() => { localStorage.setItem(COUNTS_KEY, JSON.stringify(counts)); }, [counts]);
+  useEffect(() => { localStorage.setItem(ADJ_KEY, JSON.stringify(adj)); }, [adj]);
+  useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
+
+  const handleClearAll = () => {
+    setCounts({ ...EMPTY_COUNTS });
+    setAdj({ ...EMPTY_ADJUSTMENTS });
+  };
+
+  // Auto-generate counter name: YYYY-MM-DD-01, -02, etc.
+  const autoName = (() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayEntries = existingCounterNames.filter((n) => n.startsWith(today));
+    const nextNum = String(todayEntries.length + 1).padStart(2, '0');
+    return `${today}-${nextNum}`;
+  })();
 
   // Derive final ZoneCounts depending on mode
   const finalCounts: ZoneCounts = mode === 'capacity'
@@ -149,18 +161,13 @@ const CounterForm: React.FC<{
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setFormErrors(['Please enter your name.']);
-      return;
-    }
     setFormErrors([]);
     setReviewing(true);
   };
 
   const handleConfirmSubmit = async () => {
-    const result = await onSubmit(name.trim(), finalCounts);
+    const result = await onSubmit(autoName, finalCounts);
     if (result.success) {
-      localStorage.setItem(COUNTER_NAME_KEY, name.trim());
       setReviewing(false);
       setSubmitted(true);
     } else {
@@ -177,7 +184,7 @@ const CounterForm: React.FC<{
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Counter</span>
-            <span className="font-semibold text-gray-800">{name}</span>
+            <span className="font-semibold text-gray-800">{autoName}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Mode</span>
@@ -210,7 +217,7 @@ const CounterForm: React.FC<{
         <div className="text-center py-3">
           <div className="text-4xl mb-2">✅</div>
           <h3 className="font-bold text-primary text-lg">Count Submitted!</h3>
-          <p className="text-gray-500 text-sm mt-1">Counted by: <strong>{name}</strong></p>
+          <p className="text-gray-500 text-sm mt-1">Counter: <strong>{autoName}</strong></p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Your Count</p>
@@ -291,40 +298,24 @@ const CounterForm: React.FC<{
         >
           <span className="text-lg">🪑</span>
           <span>Capacity Mode</span>
-          <span className={`text-[10px] ${mode === 'capacity' ? 'text-white/70' : 'text-gray-400'}`}>Count empties &amp; doubles</span>
+          <span className={`text-[10px] ${mode === 'capacity' ? 'text-white/70' : 'text-gray-400'}`}>Count empty seats</span>
         </button>
       </div>
 
       <form onSubmit={handleReview} className="space-y-4">
-        {/* Counter name */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-            Your Name / Counter ID
-            {name && localStorage.getItem(COUNTER_NAME_KEY) === name && (
-              <span className="ml-2 text-xs font-normal text-success">✓ Remembered</span>
-            )}
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Counter A, Jason..."
-            className="input-field"
-            list="counter-names"
-          />
-          {existingCounterNames.length > 0 && (
-            <datalist id="counter-names">
-              {existingCounterNames.map((n) => <option key={n} value={n} />)}
-            </datalist>
-          )}
+        {/* Auto-assigned counter ID */}
+        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl">
+          <span className="text-xs text-gray-500">Counter ID</span>
+          <span className="text-sm font-bold text-primary">{autoName}</span>
         </div>
 
         {/* ── PEOPLE MODE ── */}
         {mode === 'people' && (
           <>
-            <div className="grid grid-cols-2 gap-2">
-              {(['left', 'middle', 'right', 'production'] as const).map((key) => {
+            <div className="space-y-2">
+              {(['left', 'middle', 'right', 'production', 'outside'] as const).map((key) => {
                 const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
+                const accent = key === 'left' ? 'blue' : key === 'middle' ? 'emerald' : key === 'right' ? 'violet' : key === 'production' ? 'amber' : 'slate';
                 return (
                   <CountInput
                     key={key}
@@ -332,18 +323,11 @@ const CounterForm: React.FC<{
                     value={counts[key]}
                     onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
                     disabled={submitting}
-                    colorAccent={key === 'left' ? 'blue' : key === 'middle' ? 'emerald' : key === 'right' ? 'violet' : 'amber'}
+                    colorAccent={accent}
                   />
                 );
               })}
             </div>
-            <CountInput
-              label="Outside"
-              value={counts.outside}
-              onChange={(val) => setCounts((c) => ({ ...c, outside: val }))}
-              disabled={submitting}
-              colorAccent="slate"
-            />
           </>
         )}
 
@@ -352,8 +336,8 @@ const CounterForm: React.FC<{
           <>
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 text-xs text-blue-700 space-y-0.5">
               <p className="font-bold">How capacity mode works:</p>
-              <p>Count <strong>empty seats</strong> 🪑 and <strong>seats with 2 people</strong> 👶 per section.</p>
-              <p className="text-blue-500">Formula: <em>capacity − empty + doubles = people</em></p>
+              <p>Tap <strong>+</strong> each time you spot an empty seat. We subtract the net from capacity to get the people count.</p>
+              <p className="text-blue-500">Formula: <em>capacity − net = people</em></p>
             </div>
 
             <div className="space-y-3">
@@ -362,13 +346,10 @@ const CounterForm: React.FC<{
                 return (
                   <CapacityBlock
                     key={key}
-                    sectionKey={key}
                     label={labels[key]}
                     capacity={SECTION_TOTALS[key]}
-                    adj={adj[key]}
-                    onChange={(field, v) =>
-                      setAdj((a) => ({ ...a, [key]: { ...a[key], [field]: v } }))
-                    }
+                    net={adj[key]}
+                    onChange={(v) => setAdj((a) => ({ ...a, [key]: v }))}
                     disabled={submitting}
                   />
                 );
@@ -415,6 +396,14 @@ const CounterForm: React.FC<{
 
         <button type="submit" disabled={submitting} className="btn-primary w-full">
           Review Count →
+        </button>
+        <button
+          type="button"
+          onClick={handleClearAll}
+          disabled={submitting}
+          className="w-full text-xs font-semibold py-2 text-gray-400 hover:text-danger transition-all"
+        >
+          Clear All / Reset to Zero
         </button>
       </form>
     </div>

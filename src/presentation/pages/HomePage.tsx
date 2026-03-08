@@ -23,7 +23,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           <span className="text-5xl">🐟</span>
         </div>
         <h1 className="text-3xl font-bold text-primary">Fish for People</h1>
-        <p className="text-gray-500 mt-2 text-base">Saddleback Church HK • Welcome Team</p>
+        <p className="text-gray-500 mt-2 text-base">Welcome Team</p>
       </div>
 
       {/* Quick continue if last role known */}
@@ -77,7 +77,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
             <div>
               <div className="font-bold text-xl text-primary">I'm Attending</div>
               <div className="text-gray-500 text-sm mt-1 leading-snug">
-                Request a pen, water, Bible or other help
+                Request a pen, offering envelope, voiceover device or other help
               </div>
             </div>
           </div>

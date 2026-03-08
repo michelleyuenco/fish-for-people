@@ -15,6 +15,7 @@ export function computeSeatSummaries(seats: Seat[]): SeatSummary[] {
         totalSeats,
         availableSeats: totalSeats,
         occupiedSeats: 0,
+        reservedSeats: 0,
       });
     }
   }
@@ -23,9 +24,14 @@ export function computeSeatSummaries(seats: Seat[]): SeatSummary[] {
   for (const seat of seats) {
     const key = `${seat.section}-${seat.row}`;
     const summary = summaryMap.get(key);
-    if (summary && seat.occupied) {
-      summary.occupiedSeats += 1;
-      summary.availableSeats -= 1;
+    if (summary) {
+      if (seat.occupied) {
+        summary.occupiedSeats += 1;
+        summary.availableSeats -= 1;
+      } else if (seat.reservedFor !== 'none') {
+        summary.reservedSeats += 1;
+        summary.availableSeats -= 1;
+      }
     }
   }
 
@@ -33,10 +39,13 @@ export function computeSeatSummaries(seats: Seat[]): SeatSummary[] {
 }
 
 export function getAvailableCount(seats: Seat[]): number {
-  // Available = total seats minus those explicitly marked occupied in Firestore.
-  // Seats with no Firestore doc at all are available by default.
   const occupiedCount = seats.filter((s) => s.occupied).length;
-  return TOTAL_SEATS - occupiedCount;
+  const reservedCount = seats.filter((s) => !s.occupied && s.reservedFor !== 'none').length;
+  return TOTAL_SEATS - occupiedCount - reservedCount;
+}
+
+export function getReservedCount(seats: Seat[]): number {
+  return seats.filter((s) => s.reservedFor !== 'none' && !s.occupied).length;
 }
 
 export function getOccupiedCount(seats: Seat[]): number {
@@ -51,7 +60,7 @@ export function getSectionAvailability(seats: Seat[]): Record<SectionName, numbe
     right: SECTION_TOTALS.right,
   };
   for (const seat of seats) {
-    if (seat.occupied) {
+    if (seat.occupied || (!seat.occupied && seat.reservedFor !== 'none')) {
       result[seat.section] -= 1;
     }
   }

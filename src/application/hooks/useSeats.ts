@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Seat } from '../../domain/models/Seat';
+import type { Seat, ReservedFor } from '../../domain/models/Seat';
 import { getSeatService } from '../../infrastructure/services/ServiceProvider';
-import { toggleSeat } from '../usecases/seatUseCases';
+import { toggleSeat, toggleReserved, setAllSeats } from '../usecases/seatUseCases';
 import {
   computeSeatSummaries,
   getAvailableCount,
   getOccupiedCount,
+  getReservedCount,
   getSectionAvailability,
 } from '../../domain/rules/seatRules';
 
@@ -56,10 +57,47 @@ export function useSeats(serviceId: string) {
   // Build a quick lookup map for seat state
   const seatMap = new Map<string, Seat>(seats.map((s) => [s.id, s]));
 
+  const handleToggleReserved = useCallback(
+    async (seat: Seat, reserveType: ReservedFor = 'family') => {
+      if (toggling.has(seat.id)) return;
+      setToggling((prev) => new Set(prev).add(seat.id));
+      try {
+        await toggleReserved(serviceId, seat, reserveType);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to toggle reservation'));
+      } finally {
+        setToggling((prev) => {
+          const next = new Set(prev);
+          next.delete(seat.id);
+          return next;
+        });
+      }
+    },
+    [serviceId, toggling]
+  );
+
   const summaries = computeSeatSummaries(seats);
   const availableCount = getAvailableCount(seats);
   const occupiedCount = getOccupiedCount(seats);
+  const reservedCount = getReservedCount(seats);
   const sectionAvailability = getSectionAvailability(seats);
+
+  const [bulkOperating, setBulkOperating] = useState(false);
+
+  const handleSetAllSeats = useCallback(
+    async (occupied: boolean) => {
+      if (bulkOperating) return;
+      setBulkOperating(true);
+      try {
+        await setAllSeats(serviceId, occupied);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to set all seats'));
+      } finally {
+        setBulkOperating(false);
+      }
+    },
+    [serviceId, bulkOperating]
+  );
 
   return {
     seats,
@@ -67,10 +105,14 @@ export function useSeats(serviceId: string) {
     summaries,
     availableCount,
     occupiedCount,
+    reservedCount,
     sectionAvailability,
     loading,
     error,
     toggling,
     toggleSeat: handleToggleSeat,
+    toggleReserved: handleToggleReserved,
+    bulkOperating,
+    setAllSeats: handleSetAllSeats,
   };
 }

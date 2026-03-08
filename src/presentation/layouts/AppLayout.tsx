@@ -13,6 +13,7 @@ interface AppLayoutProps {
   title: string;
   onChangeRole?: () => void;
   headcountStatus?: HeadcountStatus;
+  onOpenCinema?: () => void;
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
@@ -24,6 +25,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   title,
   onChangeRole,
   headcountStatus,
+  onOpenCinema,
 }) => {
   const [largeText, setLargeText] = useState(() => {
     return localStorage.getItem(LARGE_TEXT_KEY) === 'true';
@@ -72,12 +74,26 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             {/* Text size toggle */}
             <button
               onClick={() => setLargeText((v) => !v)}
-              className="text-xs bg-white/15 hover:bg-white/25 active:bg-white/35 px-2 py-1.5 rounded-full transition-all font-bold"
+              className="bg-white/15 hover:bg-white/25 active:bg-white/35 px-2 py-1.5 rounded-full transition-all flex items-center gap-0.5"
               aria-label={largeText ? 'Switch to normal text size' : 'Switch to large text size'}
               title={largeText ? 'Normal text' : 'Large text'}
             >
-              {largeText ? 'A−' : 'A+'}
+              <span className="text-[10px] font-bold leading-none">A</span>
+              <span className="text-[15px] font-bold leading-none">A</span>
+              <span className="text-[9px] ml-0.5 opacity-70">{largeText ? '↓' : '↑'}</span>
             </button>
+            {/* Sanctuary fullscreen button (welcome team only) */}
+            {onOpenCinema && (
+              <button
+                onClick={onOpenCinema}
+                className="bg-white/15 hover:bg-white/25 active:bg-white/35 px-2 py-1.5 rounded-full transition-all hidden md:flex items-center gap-1 text-xs font-semibold"
+                aria-label="Open sanctuary view"
+                title="Open fullscreen sanctuary view"
+              >
+                <span className="text-sm leading-none">⛪</span>
+                <span className="hidden sm:inline">Sanctuary</span>
+              </button>
+            )}
             {/* Tappable role badge — tap to switch role */}
             <button
               onClick={onChangeRole}
@@ -106,7 +122,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
       {/* Main content */}
       <main id="main-content" className="flex-1 overflow-y-auto pb-24" tabIndex={-1}>
-        <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto px-4 py-4 space-y-4">
           {children}
         </div>
       </main>
