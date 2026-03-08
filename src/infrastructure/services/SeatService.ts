@@ -112,6 +112,36 @@ export class SeatService {
   }
 
   /**
+   * Set all seats in a specific section-row to occupied or available.
+   */
+  async setRowSeats(
+    serviceId: string,
+    section: SectionName,
+    row: number,
+    occupied: boolean
+  ): Promise<void> {
+    const col = seatsCollection(this.db, serviceId);
+    const sectionConfig = SECTIONS.find((s) => s.name === section);
+    if (!sectionConfig || row > sectionConfig.rows) return;
+
+    const seatsInRow = sectionConfig.seatsPerRow(row);
+    const batch = writeBatch(this.db);
+    for (let c = 1; c <= seatsInRow; c++) {
+      const seatId = `${section}-${row}-${c}`;
+      const seatDoc = doc(col, seatId);
+      batch.set(seatDoc, {
+        section,
+        row,
+        col: c,
+        occupied,
+        reservedFor: 'none',
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  /**
    * Set all seats to occupied or available in batches.
    * Firestore batches are limited to 500 writes each.
    */

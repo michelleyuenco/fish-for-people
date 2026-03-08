@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AppLayout } from './presentation/layouts/AppLayout';
 import { HomePage } from './presentation/pages/HomePage';
 import { SeatTrackerPage } from './presentation/pages/SeatTrackerPage';
 import { RequestsPage } from './presentation/pages/RequestsPage';
 import { HeadcountPage } from './presentation/pages/HeadcountPage';
-import { CinemaPage } from './presentation/pages/CinemaPage';
+import { FloorPlanPage } from './presentation/pages/FloorPlanPage';
 import { useService } from './application/hooks/useService';
 import { useRequests } from './application/hooks/useRequests';
-import { useHeadcount } from './application/hooks/useHeadcount';
-import type { TabName, HeadcountStatus } from './presentation/components/NavBar';
+import type { TabName } from './presentation/components/NavBar';
 import type { UserRole } from './domain/models/Service';
 
 const ROLE_STORAGE_KEY = 'fish-for-people:role';
@@ -34,16 +34,9 @@ const AppWithService: React.FC<{
 }> = ({ role, onChangeRole }) => {
   const { serviceId, loading: serviceLoading } = useService();
   const { pendingCount } = useRequests(serviceId);
-  const { counterA, counterB, discrepancies } = useHeadcount(serviceId);
   const navigate = useNavigate();
   const location = useLocation();
-
-  const headcountStatus: HeadcountStatus = (() => {
-    if (!counterA && !counterB) return 'idle';
-    if (discrepancies.length > 0) return 'discrepancy';
-    if (counterA && counterB) return 'ready';
-    return 'one-submitted';
-  })();
+  const { t } = useTranslation();
 
   // Derive active tab from current path
   const activeTab: TabName = pathToTab[location.pathname] ??
@@ -56,11 +49,11 @@ const AppWithService: React.FC<{
   const getPageTitle = () => {
     switch (activeTab) {
       case 'seats':
-        return 'Seat Availability Tracker';
+        return t('pageTitle.seats');
       case 'requests':
-        return role === 'congregation' ? 'Request Assistance' : 'Needs Requests Dashboard';
+        return role === 'congregation' ? t('pageTitle.requestsCongregation') : t('pageTitle.requestsTeam');
       case 'headcount':
-        return 'Attendance Headcount';
+        return t('pageTitle.headcount');
       default:
         return '';
     }
@@ -71,16 +64,16 @@ const AppWithService: React.FC<{
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">Connecting to service...</p>
+          <p className="text-gray-500 text-sm">{t('common.connecting')}</p>
         </div>
       </div>
     );
   }
 
-  // Cinema fullscreen route — rendered outside AppLayout
-  if (location.pathname === '/cinema') {
+  // Floor plan fullscreen route — rendered outside AppLayout
+  if (location.pathname === '/floor-plan') {
     return role === 'welcome-team'
-      ? <CinemaPage serviceId={serviceId} />
+      ? <FloorPlanPage serviceId={serviceId} />
       : <Navigate to="/requests" replace />;
   }
 
@@ -92,8 +85,7 @@ const AppWithService: React.FC<{
       role={role}
       title={getPageTitle()}
       onChangeRole={onChangeRole}
-      headcountStatus={headcountStatus}
-      onOpenCinema={role === 'welcome-team' ? () => navigate('/cinema') : undefined}
+      onOpenFloorPlan={role === 'welcome-team' ? () => navigate('/floor-plan') : undefined}
     >
       <Routes>
         <Route path="/seats" element={

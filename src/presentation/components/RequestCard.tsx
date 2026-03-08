@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ServiceRequest } from '../../domain/models/Request';
 import { formatTimeElapsed } from '../../domain/rules/requestRules';
 import { REQUEST_TYPE_ICONS, REQUEST_TYPE_COLORS } from '../../domain/constants/requests';
@@ -25,6 +26,7 @@ export const RequestCard: React.FC<RequestCardProps> = ({
   isResolving,
   onResolve,
 }) => {
+  const { t } = useTranslation();
   const [timeElapsed, setTimeElapsed] = useState(formatTimeElapsed(request.createdAt));
   const [noteExpanded, setNoteExpanded] = useState(false);
 
@@ -50,14 +52,17 @@ export const RequestCard: React.FC<RequestCardProps> = ({
       }`}
     >
       <div className="flex items-start gap-3">
-        {/* Type badge — icon + text for colorblind-safe redundant encoding */}
+        {/* Type badge — icon + quantity + text */}
         <div
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 ${colorClass}`}
           role="img"
-          aria-label={`Request type: ${request.type}`}
+          aria-label={`${request.quantity > 1 ? `${request.quantity}x ` : ''}${request.type}`}
         >
           <span className="text-base leading-none" aria-hidden="true">{icon}</span>
-          <span>{request.type}</span>
+          {request.quantity > 1 && (
+            <span className="text-sm font-extrabold">×{request.quantity}</span>
+          )}
+          <span>{t(`requestTypes.${request.type}`)}</span>
         </div>
 
         {/* Details */}
@@ -66,17 +71,17 @@ export const RequestCard: React.FC<RequestCardProps> = ({
             <span className="font-semibold text-sm text-gray-800">
               {sectionLabel} •{' '}
               {request.areaLabel
-                ? `${request.areaLabel} area`
-                : `Row ${request.row}`}
+                ? t('welcomeTeam.area', { label: request.areaLabel })
+                : t('welcomeTeam.row', { row: request.row })}
             </span>
             {isUrgent && (
               <span className="text-xs bg-danger text-white px-2 py-0.5 rounded-full font-bold tracking-wide">
-                ⚡ URGENT
+                ⚡ {t('welcomeTeam.urgent')}
               </span>
             )}
             {isResolved && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                ✓ Resolved
+                ✓ {t('congregation.resolved')}
               </span>
             )}
           </div>
@@ -90,8 +95,25 @@ export const RequestCard: React.FC<RequestCardProps> = ({
                   onClick={() => setNoteExpanded((v) => !v)}
                   className="text-xs text-primary font-medium mt-0.5 hover:underline"
                 >
-                  {noteExpanded ? 'Show less' : 'Show more'}
+                  {noteExpanded ? t('welcomeTeam.showLess') : t('welcomeTeam.showMore')}
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* Contact info for voiceover device requests */}
+          {(request.contactName || request.contactPhone) && (
+            <div className="mt-1.5 flex items-center gap-2 bg-teal-50 border border-teal-200 rounded-lg px-2.5 py-1.5">
+              <span className="text-xs text-teal-700 font-medium">
+                {request.contactName}
+              </span>
+              {request.contactPhone && (
+                <a
+                  href={`tel:${request.contactPhone}`}
+                  className="text-xs text-teal-600 font-bold underline"
+                >
+                  {request.contactPhone}
+                </a>
               )}
             </div>
           )}
@@ -110,7 +132,7 @@ export const RequestCard: React.FC<RequestCardProps> = ({
             disabled={isResolving}
             className="flex-shrink-0 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg min-h-[40px] transition-all active:scale-95 disabled:opacity-50"
           >
-            {isResolving ? '...' : 'Done'}
+            {isResolving ? t('welcomeTeam.resolving') : t('welcomeTeam.done')}
           </button>
         )}
       </div>

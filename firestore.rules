@@ -63,13 +63,16 @@ service cloud.firestore {
           && request.resource.data.quantity <= 20
           && request.resource.data.note is string
           && request.resource.data.note.size() <= 500
-          && request.resource.data.status == 'pending';
+          && request.resource.data.status == 'pending'
+          // Optional contact fields for Voiceover Device requests
+          && (!request.resource.data.keys().hasAny(['contactName']) || (request.resource.data.contactName is string && request.resource.data.contactName.size() <= 100))
+          && (!request.resource.data.keys().hasAny(['contactPhone']) || (request.resource.data.contactPhone is string && request.resource.data.contactPhone.size() <= 20));
 
         allow update: if request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'resolvedAt'])
           && isValidRequestStatus(request.resource.data.status);
 
-        allow delete: if false; // Keep audit trail
+        allow delete: if true;
       }
 
       // Headcount entries: submitted by two independent counters

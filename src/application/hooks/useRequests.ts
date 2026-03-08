@@ -15,6 +15,7 @@ export function useRequests(serviceId: string) {
   const [error, setError] = useState<Error | null>(null);
   const [resolving, setResolving] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!serviceId) return;
@@ -43,6 +44,8 @@ export function useRequests(serviceId: string) {
       type: RequestType;
       quantity: number;
       note: string;
+      contactName?: string;
+      contactPhone?: string;
     }): Promise<{ success: boolean; requestId?: string }> => {
       setSubmitting(true);
       try {
@@ -77,6 +80,24 @@ export function useRequests(serviceId: string) {
     [serviceId, resolving]
   );
 
+  const handleDeleteAll = useCallback(
+    async (): Promise<void> => {
+      if (deleting) return;
+      setDeleting(true);
+      try {
+        const service = getRequestService();
+        await service.deleteAllRequests(serviceId);
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Failed to delete requests');
+        setError(error);
+        throw error;
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [serviceId, deleting]
+  );
+
   const pendingRequests = sortRequestsByTime(getPendingRequests(requests));
   const resolvedRequests = sortRequestsByTime(getResolvedRequests(requests)).reverse();
   const pendingCount = pendingRequests.length;
@@ -91,7 +112,9 @@ export function useRequests(serviceId: string) {
     error,
     resolving,
     submitting,
+    deleting,
     submitRequest: handleSubmitRequest,
     resolveRequest: handleResolveRequest,
+    deleteAllRequests: handleDeleteAll,
   };
 }

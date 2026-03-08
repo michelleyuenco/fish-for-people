@@ -10,6 +10,8 @@ export interface SubmitRequestPayload {
   type: RequestType;
   quantity: number;
   note: string;
+  contactName?: string;
+  contactPhone?: string;
 }
 
 export async function submitRequest(payload: SubmitRequestPayload): Promise<string> {
@@ -21,6 +23,8 @@ export async function submitRequest(payload: SubmitRequestPayload): Promise<stri
     type: payload.type,
     quantity: payload.quantity,
     note: payload.note,
+    contactName: payload.contactName,
+    contactPhone: payload.contactPhone,
   });
 }
 

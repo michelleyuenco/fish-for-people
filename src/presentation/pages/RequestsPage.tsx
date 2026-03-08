@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
 import { REQUEST_TYPES, QUANTIFIABLE_TYPES } from '../../domain/models/Request';
 import type { RequestType, ServiceRequest } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
-import { SECTIONS } from '../../domain/constants/seating';
 import { REQUEST_TYPE_ICONS } from '../../domain/constants/requests';
+import { FloorPlanPicker, type FloorPlanSelection } from '../components/FloorPlanPicker';
 
 interface RequestsPageProps {
   serviceId: string;
@@ -17,77 +18,100 @@ interface RequestsPageProps {
 interface LastSubmission {
   section: SectionName;
   row: number;
+  areaLabel?: string;
   type: RequestType;
   quantity: number;
   note: string;
+  contactName?: string;
+  contactPhone?: string;
 }
 
-
 interface SubmitFormState {
-  section: SectionName | '';
-  row: number | '';
+  location: FloorPlanSelection | null;
   type: RequestType | '';
   quantity: number;
   note: string;
+  contactName: string;
+  contactPhone: string;
 }
-const LOCATION_STORAGE_KEY = 'fish-for-people:last-location';
 
-function getSavedLocation(): { section: SectionName; row: number } | null {
+/** Validate HK phone number: 8 digits, starts with 2-9 */
+function isValidHKPhone(phone: string): boolean {
+  return /^[2-9]\d{7}$/.test(phone.replace(/\s/g, ''));
+}
+const LOCATION_STORAGE_KEY = 'fish-for-people:last-location-v2';
+
+function getSavedLocation(): FloorPlanSelection | null {
   try {
     const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { section: string; row: number };
-    if (['left', 'middle', 'right'].includes(parsed.section) && typeof parsed.row === 'number') {
-      return { section: parsed.section as SectionName, row: parsed.row };
+    const parsed = JSON.parse(raw) as FloorPlanSelection;
+    if (['left', 'middle', 'right'].includes(parsed.section) && typeof parsed.row === 'number' && parsed.areaLabel) {
+      return parsed;
     }
   } catch { /* ignore */ }
   return null;
 }
 
+const PRESET_KEYS = [
+  'congregation.presetAccessibility',
+  'congregation.presetTranslation',
+  'congregation.presetMedical',
+  'congregation.presetLostItem',
+] as const;
+
 const CongregationView: React.FC<{
   serviceId: string;
-  onSubmit: (payload: { section: SectionName; row: number; type: RequestType; quantity: number; note: string }) => Promise<{ success: boolean; requestId?: string }>;
+  onSubmit: (payload: { section: SectionName; row: number; areaLabel?: string; type: RequestType; quantity: number; note: string; contactName?: string; contactPhone?: string }) => Promise<{ success: boolean; requestId?: string }>;
   submitting: boolean;
   allRequests: ReturnType<typeof useRequests>['allRequests'];
 }> = ({ onSubmit, submitting, allRequests }) => {
+  const { t } = useTranslation();
   const savedLocation = getSavedLocation();
   const [form, setForm] = useState<SubmitFormState>({
-    section: savedLocation?.section ?? '',
-    row: savedLocation?.row ?? '',
+    location: savedLocation,
     type: '',
     quantity: 1,
     note: '',
+    contactName: '',
+    contactPhone: '',
   });
-  const maxRow = form.section
-    ? (SECTIONS.find((s) => s.name === form.section)?.rows ?? 14)
-    : 14;
   const [submitted, setSubmitted] = useState(false);
   const [lastSubmission, setLastSubmission] = useState<LastSubmission | null>(null);
   const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(!savedLocation);
+
+  const isVoiceover = form.type === 'Voiceover Device';
+  const phoneValid = !isVoiceover || isValidHKPhone(form.contactPhone);
+  const nameValid = !isVoiceover || form.contactName.trim().length > 0;
+  const canSubmit = !!form.location && !!form.type && (!isVoiceover || (phoneValid && nameValid));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.section || !form.row || !form.type) return;
+    if (!canSubmit) return;
     const payload = {
-      section: form.section as SectionName,
-      row: form.row as number,
+      section: form.location!.section,
+      row: form.location!.row,
+      areaLabel: form.location!.areaLabel,
       type: form.type as RequestType,
       quantity: form.quantity,
       note: form.note,
+      ...(isVoiceover ? { contactName: form.contactName.trim(), contactPhone: form.contactPhone.replace(/\s/g, '') } : {}),
     };
     const result = await onSubmit(payload);
     if (result.success) {
-      // Save location for next time
-      localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify({ section: payload.section, row: payload.row }));
+      localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(form.location));
       setLastSubmission(payload);
       setSubmittedRequestId(result.requestId ?? null);
       setSubmitted(true);
-      setForm({ section: '', row: '', type: '', quantity: 1, note: '' });
+      setForm((f) => ({ ...f, type: '', quantity: 1, note: '', contactName: '', contactPhone: '' }));
     }
   };
 
   if (submitted && lastSubmission) {
-    const sectionLabel = lastSubmission.section.charAt(0).toUpperCase() + lastSubmission.section.slice(1);
+    const locationLabel = lastSubmission.areaLabel
+      ? `${lastSubmission.areaLabel}`
+      : `Row ${lastSubmission.row}`;
     const liveRequest = submittedRequestId ? allRequests.find((r) => r.id === submittedRequestId) : null;
     const isResolved = liveRequest?.status === 'resolved';
 
@@ -95,9 +119,11 @@ const CongregationView: React.FC<{
       <div className="card space-y-4">
         <div className="text-center py-4">
           <div className="text-5xl mb-3">{isResolved ? '✅' : REQUEST_TYPE_ICONS[lastSubmission.type]}</div>
-          <h2 className="text-xl font-bold text-primary">{isResolved ? 'Request Completed!' : 'Request Sent!'}</h2>
+          <h2 className="text-xl font-bold text-primary">
+            {isResolved ? t('congregation.requestCompleted') : t('congregation.requestSent')}
+          </h2>
           <p className="text-gray-500 text-sm mt-1">
-            {isResolved ? 'A team member has attended to your request.' : 'A team member will come to you shortly.'}
+            {isResolved ? t('congregation.teamAttended') : t('congregation.teamComingSoon')}
           </p>
         </div>
 
@@ -112,28 +138,43 @@ const CongregationView: React.FC<{
           </span>
           <div>
             <p className={`text-sm font-semibold ${isResolved ? 'text-success' : 'text-primary'}`}>
-              {isResolved ? 'Resolved' : 'Pending — team notified'}
+              {isResolved ? t('congregation.resolved') : t('congregation.pendingTeamNotified')}
             </p>
             {!isResolved && (
-              <p className="text-xs text-gray-400">Stay in your seat</p>
+              <p className="text-xs text-gray-400">{t('congregation.stayInSeat')}</p>
             )}
           </div>
         </div>
 
         {/* Receipt */}
         <div className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-200">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Your Request</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{t('congregation.yourRequest')}</p>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">What</span>
-            <span className="font-semibold text-gray-800">{lastSubmission.quantity > 1 ? `${lastSubmission.quantity}x ` : ''}{lastSubmission.type}</span>
+            <span className="text-gray-500">{t('congregation.what')}</span>
+            <span className="font-semibold text-gray-800">
+              {lastSubmission.quantity > 1 ? `${lastSubmission.quantity}x ` : ''}
+              {t(`requestTypes.${lastSubmission.type}`)}
+            </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Where</span>
-            <span className="font-semibold text-gray-800">{sectionLabel} • Row {lastSubmission.row}</span>
+            <span className="text-gray-500">{t('congregation.where')}</span>
+            <span className="font-semibold text-gray-800">{locationLabel}</span>
           </div>
+          {lastSubmission.contactName && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">{t('congregation.contactName')}</span>
+              <span className="font-semibold text-gray-800">{lastSubmission.contactName}</span>
+            </div>
+          )}
+          {lastSubmission.contactPhone && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">{t('congregation.contactPhone')}</span>
+              <span className="font-semibold text-gray-800">{lastSubmission.contactPhone}</span>
+            </div>
+          )}
           {lastSubmission.note && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Note</span>
+              <span className="text-gray-500">{t('congregation.note')}</span>
               <span className="font-semibold text-gray-800 text-right max-w-[60%]">{lastSubmission.note}</span>
             </div>
           )}
@@ -142,180 +183,89 @@ const CongregationView: React.FC<{
           onClick={() => { setSubmitted(false); setSubmittedRequestId(null); }}
           className="btn-primary w-full"
         >
-          Submit Another Request
+          {t('congregation.submitAnother')}
         </button>
       </div>
     );
   }
 
-  const hasSavedLocation = savedLocation !== null && form.section === (savedLocation?.section ?? '') && form.row === (savedLocation?.row ?? '');
-  const currentSavedLoc = getSavedLocation();
-  const isFirstVisit = currentSavedLoc === null;
-
   return (
-    <div className="card space-y-4">
-      <h2 className="font-bold text-primary text-lg">Get Help From Our Team</h2>
-      <p className="text-gray-500 text-sm">Fill in your seat location and what you need — someone will come to you. Stay in your seat! 😊</p>
-
-      {/* First-visit explainer */}
-      {isFirstVisit && (
-        <div className="bg-accent/10 border border-accent/30 rounded-xl p-3 space-y-2">
-          <p className="text-xs font-bold text-accent uppercase tracking-wide">How it works</p>
-          <div className="space-y-1.5 text-xs text-gray-600">
-            <div className="flex items-start gap-2">
-              <span className="text-base leading-none mt-0.5">1️⃣</span>
-              <span>Tell us where you're sitting (section + row)</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-base leading-none mt-0.5">2️⃣</span>
-              <span>Choose what you need (pen, offering envelope, voiceover device…)</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-base leading-none mt-0.5">3️⃣</span>
-              <span>A Welcome Team member comes to you ✓</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {currentSavedLoc && hasSavedLocation && (
-        <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2 text-sm">
-          <span>📍</span>
-          <span className="text-primary font-medium flex-1">
-            Using your last location: {currentSavedLoc.section.charAt(0).toUpperCase() + currentSavedLoc.section.slice(1)} Row {currentSavedLoc.row}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* ── Step 1: Location ─────────────────────────────────── */}
+      <div className="card space-y-3">
+        <div className="flex items-center gap-2.5">
+          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+            form.location ? 'bg-success text-white' : 'bg-primary text-white'
+          }`}>
+            {form.location ? '✓' : '1'}
           </span>
-          <button
-            type="button"
-            className="text-xs text-gray-400 underline"
-            onClick={() => setForm((f: SubmitFormState) => ({ ...f, section: '', row: '' }))}
-          >
-            Change
-          </button>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Section */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-            🗺️ Where are you sitting?
-          </label>
-          {/* Mini visual map */}
-          <div className="mb-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
-            <div className="text-center text-[10px] text-gray-400 mb-2 font-medium uppercase tracking-wide">Stage / Screen ↓</div>
-            <div className="flex gap-1 h-10">
-              {SECTIONS.map((s) => (
-                <button
-                  key={s.name}
-                  type="button"
-                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, section: s.name, row: '' }))}
-                  className={`flex-1 rounded-lg text-xs font-bold transition-all flex items-center justify-center ${
-                    form.section === s.name
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-white border border-gray-300 text-gray-500'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-            <div className="text-center text-[10px] text-gray-400 mt-2">← Entrance → Exit</div>
-          </div>
-
-        </div>
-
-        {/* Floor plan location picker */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-            Row Number
-            {form.section && (
-              <span className="ml-2 text-xs font-normal text-gray-400">
-                (1 = closest to stage, {maxRow} = back)
-              </span>
-            )}
-          </label>
-          <select
-            value={form.row}
-            onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, row: parseInt(e.target.value) || '' }))}
-            className="select-field"
-            disabled={!form.section}
-          >
-            <option value="">Select row...</option>
-            {Array.from({ length: maxRow }, (_, i) => i + 1).map((r) => {
-              const position = r <= 3 ? ' · Front' : r >= maxRow - 2 ? ' · Back' : r === Math.ceil(maxRow / 2) ? ' · Middle' : '';
-              return (
-                <option key={r} value={r}>
-                  Row {r}{position}
-                </option>
-              );
-            })}
-          </select>
-          {/* Position hint */}
-          {form.section && typeof form.row === 'number' && form.row > 0 && (
-            <div className="mt-1.5 flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary/40 rounded-full"
-                  style={{ width: `${((form.row as number) / maxRow) * 100}%` }}
-                />
-              </div>
-              <span className="text-xs text-gray-400">
-                {form.row <= 3 ? '🎭 Near stage' : form.row >= maxRow - 2 ? '🚪 Near back' : '↔ Middle area'}
-              </span>
-            </div>
-          )}
-          {/* "Don't know row" shortcut */}
-          {form.section && !form.row && (
+          <h2 className="font-bold text-gray-800 text-base flex-1">{t('congregation.step1Title')}</h2>
+          {form.location && !showLocationPicker && (
             <button
               type="button"
-              onClick={() => {
-                const sectionLabel = (form.section as string).charAt(0).toUpperCase() + (form.section as string).slice(1);
-                setForm((f: SubmitFormState) => ({
-                  ...f,
-                  row: 1,
-                  note: f.note || `I'm in the ${sectionLabel} section but not sure of my row.`,
-                }));
-              }}
-              className="mt-1.5 text-xs text-primary underline"
+              onClick={() => setShowLocationPicker(true)}
+              className="text-xs text-primary underline font-medium"
             >
-              Not sure of my row number →
+              {t('congregation.changeLocation')}
             </button>
           )}
         </div>
 
-        {/* Request type */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-            🤲 What would you like?
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {REQUEST_TYPES.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setForm((f: SubmitFormState) => ({ ...f, type }))}
-                aria-label={type}
-                aria-pressed={form.type === type}
-                className={`py-3 px-2 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-1 min-h-[72px] ${
-                  form.type === type
-                    ? 'bg-primary text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <span className="text-2xl leading-none" role="img" aria-hidden="true">
-                  {REQUEST_TYPE_ICONS[type]}
-                </span>
-                <span className="leading-tight text-center">{type}</span>
-              </button>
-            ))}
+        {/* Show saved location summary OR the full picker */}
+        {form.location && !showLocationPicker ? (
+          <div className="flex items-center gap-2 bg-primary/10 rounded-xl px-3 py-2">
+            <span className="text-primary text-sm">📍</span>
+            <span className="text-sm font-semibold text-primary">{form.location.areaLabel}</span>
           </div>
+        ) : (
+          <FloorPlanPicker
+            value={form.location}
+            onChange={(loc) => {
+              setForm((f) => ({ ...f, location: loc }));
+              setShowLocationPicker(false);
+            }}
+          />
+        )}
+      </div>
+
+      {/* ── Step 2: What you need ────────────────────────────── */}
+      <div className={`card space-y-3 transition-opacity ${form.location ? '' : 'opacity-40 pointer-events-none'}`}>
+        <div className="flex items-center gap-2.5">
+          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+            form.type ? 'bg-success text-white' : 'bg-primary text-white'
+          }`}>
+            {form.type ? '✓' : '2'}
+          </span>
+          <h2 className="font-bold text-gray-800 text-base">{t('congregation.step2Title')}</h2>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {REQUEST_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setForm((f: SubmitFormState) => ({ ...f, type }))}
+              aria-label={t(`requestTypes.${type}`)}
+              aria-pressed={form.type === type}
+              className={`py-3 px-2 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-1 min-h-[72px] ${
+                form.type === type
+                  ? 'bg-primary text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <span className="text-2xl leading-none" role="img" aria-hidden="true">
+                {REQUEST_TYPE_ICONS[type]}
+              </span>
+              <span className="leading-tight text-center">{t(`requestTypes.${type}`)}</span>
+            </button>
+          ))}
         </div>
 
         {/* Quantity stepper */}
         {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              🔢 How many?
+              {t('congregation.howMany')}
             </label>
             <div className="flex items-center gap-3">
               <button
@@ -323,86 +273,103 @@ const CongregationView: React.FC<{
                 onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
                 disabled={form.quantity <= 1}
                 className="w-11 h-11 rounded-xl bg-gray-100 text-gray-700 text-xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
-                aria-label="Decrease quantity"
+                aria-label="−"
               >−</button>
               <span className="text-2xl font-bold text-primary w-10 text-center">{form.quantity}</span>
               <button
                 type="button"
                 onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
                 className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all"
-                aria-label="Increase quantity"
+                aria-label="+"
               >+</button>
             </div>
           </div>
         )}
+
+        {/* Contact info (for Voiceover Device) */}
+        {isVoiceover && (
+          <div className="space-y-3 bg-teal-50 border border-teal-200 rounded-xl p-4">
+            <p className="text-xs font-semibold text-teal-700">
+              {t('congregation.voiceoverContactNote')}
+            </p>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                {t('congregation.contactName')}
+              </label>
+              <input
+                type="text"
+                value={form.contactName}
+                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
+                placeholder={t('congregation.contactNamePlaceholder')}
+                className="input-field"
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                {t('congregation.contactPhone')}
+              </label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={form.contactPhone}
+                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
+                placeholder={t('congregation.contactPhonePlaceholder')}
+                className={`input-field ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                autoComplete="tel"
+              />
+              {form.contactPhone && !phoneValid && (
+                <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Note (for "Other") */}
         {form.type === 'Other' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Please describe
+              {t('congregation.pleaseDescribe')}
             </label>
-            {/* Quick presets */}
             <div className="flex flex-wrap gap-2 mb-2">
-              {['Accessibility help', 'Translation needed', 'Medical assistance', 'Lost item'].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: preset }))}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                    form.note === preset
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
+              {PRESET_KEYS.map((key) => {
+                const label = t(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                      form.note === label
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
             <textarea
               value={form.note}
               onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-              placeholder="Or describe what you need..."
+              placeholder={t('congregation.orDescribe')}
               rows={2}
               className="input-field resize-none"
             />
           </div>
         )}
+      </div>
 
-        {/* Pre-submit summary */}
-        {(form.section || form.row || form.type) && (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm space-y-1">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Summary</p>
-            <div className="flex items-center gap-2">
-              <span className={form.section ? 'text-success' : 'text-gray-300'}>✓</span>
-              <span className={form.section ? 'text-gray-700 font-medium' : 'text-gray-300'}>
-                {form.section ? `${(form.section as string).charAt(0).toUpperCase() + (form.section as string).slice(1)} section` : 'Section not selected'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={form.row ? 'text-success' : 'text-gray-300'}>✓</span>
-              <span className={form.row ? 'text-gray-700 font-medium' : 'text-gray-300'}>
-                {form.row ? `Row ${form.row}` : 'Row not selected'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={form.type ? 'text-success' : 'text-gray-300'}>✓</span>
-              <span className={form.type ? 'text-gray-700 font-medium' : 'text-gray-300'}>
-                {form.type ? `${form.type}` : 'Need type not selected'}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={!form.section || !form.row || !form.type || submitting}
-          className="btn-primary w-full text-lg py-4"
-        >
-          {submitting ? 'Calling for help...' : '🙋 Call for Help'}
-        </button>
-      </form>
-    </div>
+      {/* ── Submit ────────────────────────────────────────────── */}
+      <button
+        type="submit"
+        disabled={!canSubmit || submitting}
+        className="btn-primary w-full text-lg py-4"
+      >
+        {submitting ? t('congregation.callingForHelp') : t('congregation.callForHelp')}
+      </button>
+    </form>
   );
 };
 
@@ -412,6 +379,7 @@ interface ServiceWrapUpPanelProps {
 }
 
 const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequests }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const firstRequest = resolvedRequests.length > 0
@@ -428,8 +396,8 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
   const formatTime = (d: Date) =>
     d.toLocaleTimeString('en-HK', { hour: '2-digit', minute: '2-digit' });
 
-  const typeCounts = REQUEST_TYPES.reduce<Record<string, number>>((acc, t) => {
-    acc[t] = resolvedRequests.filter((r) => r.type === t).length;
+  const typeCounts = REQUEST_TYPES.reduce<Record<string, number>>((acc, tp) => {
+    acc[tp] = resolvedRequests.filter((r) => r.type === tp).length;
     return acc;
   }, {});
 
@@ -456,8 +424,8 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
       lines.push(`Last resolved: ${formatTime(rt)}`);
     }
     lines.push(``, `BY TYPE:`);
-    REQUEST_TYPES.filter((t) => typeCounts[t] > 0).forEach((t) => {
-      lines.push(`  ${REQUEST_TYPE_ICONS[t]} ${t}: ${typeCounts[t]}`);
+    REQUEST_TYPES.filter((tp) => typeCounts[tp] > 0).forEach((tp) => {
+      lines.push(`  ${REQUEST_TYPE_ICONS[tp]} ${tp}: ${typeCounts[tp]}`);
     });
     lines.push(``, `BY SECTION:`);
     sectionCounts.filter((s) => s.count > 0).forEach((s) => {
@@ -475,20 +443,20 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
       {/* Celebration header */}
       <div className="card bg-gradient-to-br from-accent/10 to-primary/5 border-2 border-accent/30 text-center py-6 space-y-2">
         <div className="text-5xl mb-1">🎉</div>
-        <h2 className="text-xl font-bold text-primary">Service Complete!</h2>
-        <p className="text-gray-600 text-sm">All {resolvedRequests.length} request{resolvedRequests.length !== 1 ? 's' : ''} resolved.</p>
-        <p className="text-xs text-accent font-semibold uppercase tracking-wide mt-1">Well done, Welcome Team! 🙌</p>
+        <h2 className="text-xl font-bold text-primary">{t('wrapUp.serviceComplete')}</h2>
+        <p className="text-gray-600 text-sm">{t('wrapUp.allResolved', { count: resolvedRequests.length })}</p>
+        <p className="text-xs text-accent font-semibold uppercase tracking-wide mt-1">{t('wrapUp.wellDone')} 🙌</p>
       </div>
 
       {/* Timeline summary */}
       {(firstRequest || lastResolved) && (
         <div className="card">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Service Timeline</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('wrapUp.timeline')}</p>
           <div className="flex items-center gap-3">
             {firstRequest && (
               <div className="flex-1 bg-primary/5 rounded-xl p-3 text-center">
                 <div className="text-base font-bold text-primary">{formatTime(firstRequest.createdAt)}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">First Request</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">{t('wrapUp.firstRequest')}</div>
               </div>
             )}
             <div className="text-gray-300 text-xl">→</div>
@@ -497,7 +465,7 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
                 <div className="text-base font-bold text-success">
                   {formatTime(lastResolved.resolvedAt ?? lastResolved.createdAt)}
                 </div>
-                <div className="text-[10px] text-gray-400 mt-0.5">Last Resolved</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">{t('wrapUp.lastResolved')}</div>
               </div>
             )}
           </div>
@@ -506,21 +474,21 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
 
       {/* Requests by type */}
       <div className="card">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Requests by Type</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('wrapUp.byType')}</p>
         <div className="space-y-2">
-          {REQUEST_TYPES.filter((t) => typeCounts[t] > 0).map((t) => {
-            const pct = Math.round((typeCounts[t] / resolvedRequests.length) * 100);
+          {REQUEST_TYPES.filter((tp) => typeCounts[tp] > 0).map((tp) => {
+            const pct = Math.round((typeCounts[tp] / resolvedRequests.length) * 100);
             return (
-              <div key={t} className="flex items-center gap-2">
-                <span className="text-base w-6 text-center">{REQUEST_TYPE_ICONS[t]}</span>
-                <span className="text-xs text-gray-600 w-24 font-medium">{t}</span>
+              <div key={tp} className="flex items-center gap-2">
+                <span className="text-base w-6 text-center">{REQUEST_TYPE_ICONS[tp]}</span>
+                <span className="text-xs text-gray-600 w-24 font-medium">{t(`requestTypes.${tp}`)}</span>
                 <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary rounded-full transition-all duration-700"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-primary w-5 text-right">{typeCounts[t]}</span>
+                <span className="text-xs font-bold text-primary w-5 text-right">{typeCounts[tp]}</span>
               </div>
             );
           })}
@@ -529,7 +497,7 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
 
       {/* By section */}
       <div className="card">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Requests by Section</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('wrapUp.bySection')}</p>
         <div className="flex gap-2">
           {sectionCounts.map((s) => (
             <div key={s.label} className="flex-1 bg-gray-50 rounded-xl py-3 text-center border border-gray-100">
@@ -550,7 +518,7 @@ const ServiceWrapUpPanel: React.FC<ServiceWrapUpPanelProps> = ({ resolvedRequest
         }`}
       >
         <span>{copied ? '✅' : '📋'}</span>
-        <span>{copied ? 'Copied! Paste into WhatsApp or Email' : 'Copy Service Report to Share'}</span>
+        <span>{copied ? t('wrapUp.copied') : t('wrapUp.copyReport')}</span>
       </button>
     </div>
   );
@@ -563,16 +531,21 @@ const WelcomeTeamView: React.FC<{
   pendingCount: number;
   resolving: Set<string>;
   onResolve: (id: string) => void;
+  onDeleteAll: () => Promise<void>;
+  deleting: boolean;
   loading: boolean;
-}> = ({ pendingRequests, resolvedRequests, pendingCount, resolving, onResolve, loading }) => {
+  error: Error | null;
+}> = ({ pendingRequests, resolvedRequests, pendingCount, resolving, onResolve, onDeleteAll, deleting, loading, error }) => {
+  const { t } = useTranslation();
   const [showResolved, setShowResolved] = useState(false);
   const [showAllResolved, setShowAllResolved] = useState(false);
   const [filterType, setFilterType] = useState<RequestType | 'all'>('all');
+  const [confirmWipe, setConfirmWipe] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
-        {/* Stats skeleton */}
         <div className="card">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
@@ -582,7 +555,6 @@ const WelcomeTeamView: React.FC<{
             <div className="h-10 w-10 bg-gray-200 rounded-full" />
           </div>
         </div>
-        {/* Card skeletons */}
         {[1, 2, 3].map((i) => (
           <div key={i} className="card flex items-center gap-3">
             <div className="h-7 w-20 bg-gray-200 rounded-full flex-shrink-0" />
@@ -601,9 +573,8 @@ const WelcomeTeamView: React.FC<{
     ? pendingRequests
     : pendingRequests.filter((r) => r.type === filterType);
 
-  // Compute type counts for the filter chips
-  const typeCounts = REQUEST_TYPES.reduce<Record<string, number>>((acc, t) => {
-    acc[t] = pendingRequests.filter((r) => r.type === t).length;
+  const typeCounts = REQUEST_TYPES.reduce<Record<string, number>>((acc, tp) => {
+    acc[tp] = pendingRequests.filter((r) => r.type === tp).length;
     return acc;
   }, {});
 
@@ -613,8 +584,8 @@ const WelcomeTeamView: React.FC<{
       <div className="card">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-primary text-base">Active Requests</h2>
-            <p className="text-gray-500 text-xs mt-0.5">Real-time • tap Done to resolve</p>
+            <h2 className="font-bold text-primary text-base">{t('welcomeTeam.activeRequests')}</h2>
+            <p className="text-gray-500 text-xs mt-0.5">{t('welcomeTeam.realTimeTapDone')}</p>
           </div>
           <div className="text-3xl font-bold text-primary">{pendingCount}</div>
         </div>
@@ -628,18 +599,18 @@ const WelcomeTeamView: React.FC<{
                 filterType === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}
             >
-              All ({pendingCount})
+              {t('welcomeTeam.all')} ({pendingCount})
             </button>
-            {REQUEST_TYPES.filter((t) => typeCounts[t] > 0).map((t) => (
+            {REQUEST_TYPES.filter((tp) => typeCounts[tp] > 0).map((tp) => (
               <button
-                key={t}
-                onClick={() => setFilterType(filterType === t ? 'all' : t)}
+                key={tp}
+                onClick={() => setFilterType(filterType === tp ? 'all' : tp)}
                 className={`text-xs px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 ${
-                  filterType === t ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                  filterType === tp ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
                 }`}
               >
-                <span>{REQUEST_TYPE_ICONS[t]}</span>
-                <span>{t} ({typeCounts[t]})</span>
+                <span>{REQUEST_TYPE_ICONS[tp]}</span>
+                <span>{t(`requestTypes.${tp}`)} ({typeCounts[tp]})</span>
               </button>
             ))}
           </div>
@@ -654,7 +625,9 @@ const WelcomeTeamView: React.FC<{
         <div className="card text-center py-6 space-y-3">
           <div className="text-3xl">✅</div>
           <p className="text-gray-500 text-sm">
-            {filterType === 'all' ? 'All clear! No requests yet this service.' : `No pending ${filterType} requests.`}
+            {filterType === 'all'
+              ? t('welcomeTeam.allClear')
+              : t('welcomeTeam.noPending', { type: t(`requestTypes.${filterType}`) })}
           </p>
         </div>)
       ) : (
@@ -666,7 +639,9 @@ const WelcomeTeamView: React.FC<{
             return (
               <div key={section}>
                 <div className="flex items-center gap-2 mb-1.5 px-1">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">{sectionLabel} Section</span>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                    {t('welcomeTeam.section', { name: sectionLabel })}
+                  </span>
                   <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">{sectionRequests.length}</span>
                 </div>
                 <div className="space-y-2">
@@ -686,6 +661,60 @@ const WelcomeTeamView: React.FC<{
         </div>
       )}
 
+      {/* Wipe all requests */}
+      {(pendingRequests.length > 0 || resolvedRequests.length > 0) && (
+        <div className="card">
+          {!confirmWipe ? (
+            <button
+              onClick={() => setConfirmWipe(true)}
+              className="w-full text-sm text-red-500 font-medium py-2 flex items-center justify-center gap-2"
+            >
+              <span>🗑️</span>
+              <span>{t('welcomeTeam.clearAll')}</span>
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-center text-gray-600">
+                {t('welcomeTeam.confirmDelete', { count: pendingRequests.length + resolvedRequests.length })}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmWipe(false)}
+                  className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium"
+                >
+                  {t('welcomeTeam.cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    setDeleteError(null);
+                    try {
+                      await onDeleteAll();
+                      setConfirmWipe(false);
+                    } catch (err) {
+                      setDeleteError(err instanceof Error ? err.message : 'Failed to delete');
+                    }
+                  }}
+                  disabled={deleting}
+                  className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
+                >
+                  {deleting ? t('welcomeTeam.deleting') : t('welcomeTeam.yesDeleteAll')}
+                </button>
+              </div>
+            </div>
+          )}
+          {deleteError && (
+            <p className="text-xs text-red-500 text-center mt-2">{deleteError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Error display */}
+      {error && (
+        <div className="card bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">
+          ⚠ {error.message}
+        </div>
+      )}
+
       {/* Resolved history toggle */}
       {resolvedRequests.length > 0 && (
         <div>
@@ -694,7 +723,11 @@ const WelcomeTeamView: React.FC<{
             className="w-full text-sm text-gray-500 py-2 flex items-center justify-center gap-1"
           >
             <span>{showResolved ? '▲' : '▼'}</span>
-            <span>{showResolved ? 'Hide' : 'Show'} resolved ({resolvedRequests.length})</span>
+            <span>
+              {showResolved
+                ? t('welcomeTeam.hideResolved', { count: resolvedRequests.length })
+                : t('welcomeTeam.showResolved', { count: resolvedRequests.length })}
+            </span>
           </button>
 
           {showResolved && (
@@ -714,7 +747,9 @@ const WelcomeTeamView: React.FC<{
                   onClick={() => setShowAllResolved((v) => !v)}
                   className="w-full text-xs text-primary py-2 font-semibold underline"
                 >
-                  {showAllResolved ? 'Show fewer' : `Show all ${resolvedRequests.length} resolved`}
+                  {showAllResolved
+                    ? t('welcomeTeam.showFewer')
+                    : t('welcomeTeam.showAll', { count: resolvedRequests.length })}
                 </button>
               )}
             </div>
@@ -732,11 +767,14 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({ serviceId, role }) =
     resolvedRequests,
     pendingCount,
     loading,
+    error,
     resolving,
     submitting,
+    deleting,
     allRequests,
     submitRequest,
     resolveRequest,
+    deleteAllRequests,
   } = useRequests(serviceId);
 
   if (role === 'congregation') {
@@ -757,7 +795,10 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({ serviceId, role }) =
       pendingCount={pendingCount}
       resolving={resolving}
       onResolve={resolveRequest}
+      onDeleteAll={deleteAllRequests}
+      deleting={deleting}
       loading={loading}
+      error={error}
     />
   );
 };

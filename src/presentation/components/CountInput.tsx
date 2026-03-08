@@ -1,4 +1,5 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface CountInputProps {
   label: string;
@@ -25,9 +26,13 @@ export const CountInput: React.FC<CountInputProps> = ({
   disabled = false,
   colorAccent = 'blue',
 }) => {
+  const { t } = useTranslation();
   const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const colors = ACCENT[colorAccent];
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const increment = useCallback(() => onChange(value + 1), [value, onChange]);
   const decrement = useCallback(() => onChange(Math.max(0, value - 1)), [value, onChange]);
@@ -42,6 +47,21 @@ export const CountInput: React.FC<CountInputProps> = ({
   const stopRepeat = () => {
     if (repeatTimerRef.current) clearTimeout(repeatTimerRef.current);
     if (repeatIntervalRef.current) clearInterval(repeatIntervalRef.current);
+  };
+
+  const startEditing = () => {
+    if (disabled) return;
+    setDraft(String(value));
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const commitEdit = () => {
+    setEditing(false);
+    const parsed = parseInt(draft, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onChange(parsed);
+    }
   };
 
   return (
@@ -63,13 +83,26 @@ export const CountInput: React.FC<CountInputProps> = ({
           onPointerLeave={stopRepeat}
           disabled={disabled || value <= 0}
           aria-label={`Decrease ${label}`}
-          className="w-20 h-24 rounded-2xl bg-gray-100 text-gray-600 text-4xl font-bold
+          className="w-14 h-14 rounded-2xl bg-gray-100 text-gray-600 text-2xl font-bold
                      flex items-center justify-center disabled:opacity-30 active:scale-90
                      transition-all select-none touch-none flex-none"
         >−</button>
-        <div className="flex-1 flex flex-col items-center">
-          <span className={`text-4xl font-bold tabular-nums ${hasDiscrepancy ? 'text-warning' : colors.label}`}>{value}</span>
-          <span className="text-xs text-gray-400">people</span>
+        <div className="flex-1 flex flex-col items-center" onClick={startEditing}>
+          {editing ? (
+            <input
+              ref={inputRef}
+              type="number"
+              inputMode="numeric"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => e.key === 'Enter' && commitEdit()}
+              className={`w-20 text-center text-4xl font-bold tabular-nums bg-transparent border-b-2 outline-none ${hasDiscrepancy ? 'text-warning border-warning' : `${colors.label} ${colors.border}`}`}
+            />
+          ) : (
+            <span className={`text-4xl font-bold tabular-nums ${hasDiscrepancy ? 'text-warning' : colors.label}`}>{value}</span>
+          )}
+          <span className="text-xs text-gray-400">{t('common.people')}</span>
         </div>
         <button
           type="button"
@@ -78,7 +111,7 @@ export const CountInput: React.FC<CountInputProps> = ({
           onPointerLeave={stopRepeat}
           disabled={disabled}
           aria-label={`Increase ${label}`}
-          className={`w-20 h-24 rounded-2xl text-white text-4xl font-bold
+          className={`w-28 h-28 rounded-2xl text-white text-5xl font-bold
                       flex items-center justify-center active:scale-90
                       transition-all disabled:opacity-40 select-none touch-none flex-none ${colors.bg}`}
         >+</button>

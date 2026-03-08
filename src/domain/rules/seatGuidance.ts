@@ -1,5 +1,5 @@
 import type { Seat, SectionName } from '../models/Seat';
-import { SECTIONS } from '../constants/seating';
+import { SECTIONS, getRowReservation } from '../constants/seating';
 
 /**
  * Compute the set of "recommended" seat IDs — available seats that,
@@ -20,7 +20,9 @@ export function getRecommendedSeats(
 
   for (const section of SECTIONS) {
     // Skip row 1 — front row has ample space, no guidance needed
+    // Skip rows with permanent reservations (family/volunteer)
     for (let row = 2; row <= section.rows; row++) {
+      if (getRowReservation(section.name, row)) continue;
       const seatsInRow = section.seatsPerRow(row);
       const colOrder = getColFillOrder(section.name, seatsInRow);
 

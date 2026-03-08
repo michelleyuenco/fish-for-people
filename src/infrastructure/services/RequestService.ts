@@ -2,8 +2,10 @@ import {
   doc,
   addDoc,
   updateDoc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
+  writeBatch,
   Timestamp,
   type Unsubscribe,
   type Firestore,
@@ -21,6 +23,8 @@ function firestoreDocToRequest(id: string, data: Record<string, unknown>): Servi
     type: data.type as RequestType,
     quantity: typeof data.quantity === 'number' ? data.quantity : 1,
     note: (data.note as string) || '',
+    contactName: data.contactName ? (data.contactName as string) : undefined,
+    contactPhone: data.contactPhone ? (data.contactPhone as string) : undefined,
     status: data.status as RequestStatus,
     createdAt: data.createdAt ? (data.createdAt as Timestamp).toDate() : new Date(),
     resolvedAt: data.resolvedAt ? (data.resolvedAt as Timestamp).toDate() : null,
@@ -58,6 +62,8 @@ export class RequestService {
       type: RequestType;
       quantity: number;
       note: string;
+      contactName?: string;
+      contactPhone?: string;
     }
   ): Promise<string> {
     const col = requestsCollection(this.db, serviceId);
@@ -68,6 +74,8 @@ export class RequestService {
       type: payload.type,
       quantity: payload.quantity,
       note: payload.note,
+      ...(payload.contactName ? { contactName: payload.contactName } : {}),
+      ...(payload.contactPhone ? { contactPhone: payload.contactPhone } : {}),
       status: 'pending' as RequestStatus,
       createdAt: serverTimestamp(),
       resolvedAt: null,
@@ -82,5 +90,20 @@ export class RequestService {
       status: 'resolved' as RequestStatus,
       resolvedAt: serverTimestamp(),
     });
+  }
+
+  async deleteAllRequests(serviceId: string): Promise<void> {
+    const col = requestsCollection(this.db, serviceId);
+    const snapshot = await getDocs(col);
+    const BATCH_SIZE = 500;
+    const docs = snapshot.docs;
+    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+      const batch = writeBatch(this.db);
+      const chunk = docs.slice(i, i + BATCH_SIZE);
+      for (const d of chunk) {
+        batch.delete(d.ref);
+      }
+      await batch.commit();
+    }
   }
 }

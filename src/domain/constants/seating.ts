@@ -72,6 +72,31 @@ export function getAllSeatIds(): string[] {
   return ids;
 }
 
+/**
+ * Permanent row-level reservations — these designate the purpose of a row,
+ * not actual occupancy. Users still toggle seats to mark them occupied.
+ */
+export type RowReservationType = 'family' | 'volunteer';
+
+export interface RowReservation {
+  section: SectionName;
+  row: number;
+  type: RowReservationType;
+  label: string;
+}
+
+export const ROW_RESERVATIONS: RowReservation[] = [
+  { section: 'left', row: 11, type: 'family', label: 'Family / Elderly' },
+  { section: 'left', row: 12, type: 'family', label: 'Family / Elderly' },
+  { section: 'left', row: 13, type: 'family', label: 'Family / Elderly' },
+  { section: 'left', row: 14, type: 'volunteer', label: 'Volunteers' },
+];
+
+/** Quick lookup: returns the reservation type for a given section+row, or undefined */
+export function getRowReservation(section: SectionName, row: number): RowReservationType | undefined {
+  return ROW_RESERVATIONS.find((r) => r.section === section && r.row === row)?.type;
+}
+
 export const TOTAL_SEATS = 368;
 
 export const SECTION_TOTALS: Record<SectionName, number> = {

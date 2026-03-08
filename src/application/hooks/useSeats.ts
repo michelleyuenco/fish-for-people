@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Seat, ReservedFor } from '../../domain/models/Seat';
+import type { Seat, ReservedFor, SectionName } from '../../domain/models/Seat';
 import { getSeatService } from '../../infrastructure/services/ServiceProvider';
-import { toggleSeat, toggleReserved, setAllSeats } from '../usecases/seatUseCases';
+import { toggleSeat, toggleReserved, setRowSeats, setAllSeats } from '../usecases/seatUseCases';
 import {
   computeSeatSummaries,
   getAvailableCount,
@@ -84,6 +84,21 @@ export function useSeats(serviceId: string) {
 
   const [bulkOperating, setBulkOperating] = useState(false);
 
+  const handleSetRowSeats = useCallback(
+    async (section: SectionName, row: number, occupied: boolean) => {
+      if (bulkOperating) return;
+      setBulkOperating(true);
+      try {
+        await setRowSeats(serviceId, section, row, occupied);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to set row seats'));
+      } finally {
+        setBulkOperating(false);
+      }
+    },
+    [serviceId, bulkOperating]
+  );
+
   const handleSetAllSeats = useCallback(
     async (occupied: boolean) => {
       if (bulkOperating) return;
@@ -113,6 +128,7 @@ export function useSeats(serviceId: string) {
     toggleSeat: handleToggleSeat,
     toggleReserved: handleToggleReserved,
     bulkOperating,
+    setRowSeats: handleSetRowSeats,
     setAllSeats: handleSetAllSeats,
   };
 }

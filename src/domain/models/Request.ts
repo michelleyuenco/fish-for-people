@@ -19,6 +19,10 @@ export interface ServiceRequest {
   type: RequestType;
   quantity: number;
   note: string;
+  /** Contact name — required for Voiceover Device requests */
+  contactName?: string;
+  /** Contact phone — required for Voiceover Device requests (for device return follow-up) */
+  contactPhone?: string;
   status: RequestStatus;
   createdAt: Date;
   resolvedAt: Date | null;
