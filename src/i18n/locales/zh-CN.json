@@ -111,7 +111,9 @@
     "contactNamePlaceholder": "您的姓名",
     "contactPhone": "电话号码",
     "contactPhonePlaceholder": "例如 91234567",
-    "invalidPhone": "请输入有效的 8 位香港电话号码"
+    "invalidPhone": "请输入有效的 8 位香港电话号码",
+    "prayerItem": "您希望为什么事项祷告？",
+    "prayerItemPlaceholder": "例如：医治、家庭、指引…"
   },
   "requestTypes": {
     "Pen": "笔",

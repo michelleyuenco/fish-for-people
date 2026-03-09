@@ -111,7 +111,9 @@
     "contactNamePlaceholder": "Your name",
     "contactPhone": "Phone Number",
     "contactPhonePlaceholder": "e.g. 91234567",
-    "invalidPhone": "Please enter a valid 8-digit HK phone number"
+    "invalidPhone": "Please enter a valid 8-digit HK phone number",
+    "prayerItem": "What would you like prayer for?",
+    "prayerItemPlaceholder": "e.g. healing, family, guidance..."
   },
   "requestTypes": {
     "Pen": "Pen",

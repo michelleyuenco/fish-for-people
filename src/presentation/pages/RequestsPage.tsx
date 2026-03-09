@@ -261,13 +261,13 @@ const CongregationView: React.FC<{
           ))}
         </div>
 
-        {/* Quantity stepper */}
+        {/* Quantity stepper — right-aligned for right-handed ease */}
         {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               {t('congregation.howMany')}
             </label>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
@@ -279,7 +279,7 @@ const CongregationView: React.FC<{
               <button
                 type="button"
                 onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all"
+                className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
                 aria-label="+"
               >+</button>
             </div>
@@ -322,6 +322,22 @@ const CongregationView: React.FC<{
                 <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Prayer item (for Prayer requests) */}
+        {form.type === 'Prayer' && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              {t('congregation.prayerItem')}
+            </label>
+            <textarea
+              value={form.note}
+              onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+              placeholder={t('congregation.prayerItemPlaceholder')}
+              rows={3}
+              className="input-field resize-none"
+            />
           </div>
         )}
 
