@@ -7,6 +7,7 @@ import type { RequestType, ServiceRequest } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
 import { REQUEST_TYPE_ICONS } from '../../domain/constants/requests';
 import { FloorPlanPicker, type FloorPlanSelection } from '../components/FloorPlanPicker';
+import { useHandedness } from '../../application/hooks/useHandedness';
 
 interface RequestsPageProps {
   serviceId: string;
@@ -60,8 +61,6 @@ const PRESET_KEYS = [
   'congregation.presetLostItem',
 ] as const;
 
-const HANDEDNESS_KEY = 'fish-for-people:handedness';
-
 const CongregationView: React.FC<{
   serviceId: string;
   onSubmit: (payload: { section: SectionName; row: number; areaLabel?: string; type: RequestType; quantity: number; note: string; contactName?: string; contactPhone?: string }) => Promise<{ success: boolean; requestId?: string }>;
@@ -69,7 +68,7 @@ const CongregationView: React.FC<{
   allRequests: ReturnType<typeof useRequests>['allRequests'];
 }> = ({ onSubmit, submitting, allRequests }) => {
   const { t } = useTranslation();
-  const isLeftHanded = localStorage.getItem(HANDEDNESS_KEY) === 'left';
+  const isLeftHanded = useHandedness();
   const savedLocation = getSavedLocation();
   const [form, setForm] = useState<SubmitFormState>({
     location: savedLocation,
@@ -226,6 +225,7 @@ const CongregationView: React.FC<{
             onChange={(loc) => {
               setForm((f) => ({ ...f, location: loc }));
               setShowLocationPicker(false);
+              localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
             }}
           />
         )}
@@ -270,13 +270,15 @@ const CongregationView: React.FC<{
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               {t('congregation.howMany')}
             </label>
-            <div className={`flex items-center gap-3 ${isLeftHanded ? 'justify-start flex-row-reverse' : 'justify-end'}`}>
-              <button
-                type="button"
-                onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                aria-label="+"
-              >+</button>
+            <div className={`flex items-center gap-3 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
+              {!isLeftHanded && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                  className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                  aria-label="+"
+                >+</button>
+              )}
               <span className="text-2xl font-bold text-primary w-10 text-center">{form.quantity}</span>
               <button
                 type="button"
@@ -285,6 +287,14 @@ const CongregationView: React.FC<{
                 className="w-11 h-11 rounded-xl bg-gray-100 text-gray-700 text-xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
                 aria-label="−"
               >−</button>
+              {isLeftHanded && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                  className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                  aria-label="+"
+                >+</button>
+              )}
             </div>
           </div>
         )}

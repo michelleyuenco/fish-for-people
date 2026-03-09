@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
 import { ZONE_NAMES, type ZoneCounts } from '../../domain/models/Headcount';
 import { calculateTotal } from '../../domain/rules/headcountRules';
 import { SECTION_TOTALS } from '../../domain/constants/seating';
+import { useHandedness } from '../../application/hooks/useHandedness';
 
 interface HeadcountPageProps {
   serviceId: string;
@@ -61,6 +62,7 @@ const CapacityBlock: React.FC<{
   disabled?: boolean;
 }> = ({ label, capacity, net, onChange, disabled }) => {
   const { t } = useTranslation();
+  const isLeftHanded = useHandedness();
   const people = Math.max(0, capacity - net);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -97,8 +99,8 @@ const CapacityBlock: React.FC<{
           {capacity} − {net} {t('headcount.net')} = <strong className="text-primary">{people}</strong> {t('common.people')}
         </p>
       </div>
-      {/* +/− stepper — extra large for eyes-free tapping */}
-      <div className="flex items-center gap-3 px-4 py-4">
+      {/* +/− stepper — extra large for eyes-free tapping (mirrored for left-handed) */}
+      <div className={`flex items-center gap-3 px-4 py-4 ${isLeftHanded ? 'flex-row-reverse' : ''}`}>
         <button
           type="button"
           onPointerDown={() => !disabled && net > 0 && onChange(net - 1)}
@@ -135,11 +137,7 @@ const CapacityBlock: React.FC<{
   );
 };
 
-const CounterForm: React.FC<{
-  onSubmit: (name: string, counts: ZoneCounts) => Promise<{ success: boolean; errors: string[] }>;
-  submitting: boolean;
-  existingCounterNames: string[];
-}> = ({ onSubmit, submitting, existingCounterNames }) => {
+const CounterForm: React.FC = () => {
   const { t } = useTranslation();
   const COUNTS_KEY = 'fish-for-people:headcount-counts';
   const ADJ_KEY = 'fish-for-people:headcount-adj';
@@ -157,9 +155,9 @@ const CounterForm: React.FC<{
       return saved ? JSON.parse(saved) : { ...EMPTY_ADJUSTMENTS };
     } catch { return { ...EMPTY_ADJUSTMENTS }; }
   });
-  const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<'people' | 'capacity'>(() => {
     const saved = localStorage.getItem(MODE_KEY);
     return saved === 'capacity' ? 'capacity' : 'people';
@@ -176,14 +174,6 @@ const CounterForm: React.FC<{
     setAdj({ ...EMPTY_ADJUSTMENTS });
   };
 
-  // Auto-generate counter name: YYYY-MM-DD-01, -02, etc.
-  const autoName = (() => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayEntries = existingCounterNames.filter((n) => n.startsWith(today));
-    const nextNum = String(todayEntries.length + 1).padStart(2, '0');
-    return `${today}-${nextNum}`;
-  })();
-
   // Derive final ZoneCounts depending on mode
   const finalCounts: ZoneCounts = mode === 'capacity'
     ? {
@@ -196,24 +186,52 @@ const CounterForm: React.FC<{
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors([]);
     setReviewing(true);
   };
 
-  const handleConfirmSubmit = async () => {
-    const result = await onSubmit(autoName, finalCounts);
-    if (result.success) {
-      setReviewing(false);
-      setSubmitted(true);
-    } else {
-      setReviewing(false);
-      setFormErrors(result.errors);
+  const buildShareText = useCallback(() => {
+    const date = new Date().toLocaleDateString();
+    const lines = [
+      `📊 ${t('headcount.yourCount')} — ${date}`,
+      '',
+      ...ZONE_NAMES.map(({ key, label }) => `  ${label}: ${finalCounts[key]}`),
+      `  ─────────`,
+      `  ${t('common.total')}: ${total}`,
+      '',
+      `${t('common.mode')}: ${mode === 'capacity' ? t('headcount.capacityMode') : t('headcount.peopleMode')}`,
+    ];
+    return lines.join('\n');
+  }, [t, finalCounts, total, mode]);
+
+  const reviewRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = useCallback(async () => {
+    const text = buildShareText();
+    setSharing(true);
+    setCopied(false);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: t('headcount.yourCount'), text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // User cancelled share or clipboard failed — try clipboard as fallback
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch { /* ignore */ }
+    } finally {
+      setSharing(false);
     }
-  };
+  }, [buildShareText, t]);
 
   if (reviewing) {
     return (
-      <div className="card space-y-4">
+      <div className="card space-y-4" ref={reviewRef}>
         <h3 className="font-bold text-primary text-base">{t('headcount.reviewYourCount')}</h3>
         <p className="text-gray-500 text-sm">{t('headcount.doubleCheck')}</p>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
@@ -234,44 +252,10 @@ const CounterForm: React.FC<{
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setReviewing(false)} className="btn-outline flex-1">{t('headcount.editBack')}</button>
-          <button type="button" onClick={handleConfirmSubmit} disabled={submitting} className="btn-primary flex-1">
-            {submitting ? t('common.submitting') : t('headcount.confirmSubmit')}
+          <button type="button" onClick={handleShare} disabled={sharing} className="btn-primary flex-1">
+            {sharing ? '...' : copied ? `✓ ${t('headcount.copied')}` : `📤 ${t('headcount.shareCount')}`}
           </button>
         </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="card space-y-4">
-        <div className="text-center py-3">
-          <div className="text-4xl mb-2">✅</div>
-          <h3 className="font-bold text-primary text-lg">{t('headcount.countSubmitted')}</h3>
-        </div>
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('headcount.yourCount')}</p>
-          {ZONE_NAMES.map(({ key, label }) => (
-            <div key={key} className="flex justify-between text-sm">
-              <span className="text-gray-500">{label}</span>
-              <span className="font-bold text-gray-800">{finalCounts[key]}</span>
-            </div>
-          ))}
-          <div className="border-t border-gray-200 pt-2 flex justify-between font-bold">
-            <span className="text-primary">{t('common.total')}</span>
-            <span className="text-primary text-xl">{total}</span>
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            setSubmitted(false);
-            setCounts({ ...EMPTY_COUNTS });
-            setAdj({ ...EMPTY_ADJUSTMENTS });
-          }}
-          className="btn-outline w-full"
-        >
-          {t('headcount.submitAgain')}
-        </button>
       </div>
     );
   }
@@ -343,7 +327,6 @@ const CounterForm: React.FC<{
                     label={zoneInfo.label}
                     value={counts[key]}
                     onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
-                    disabled={submitting}
                     colorAccent={accent}
                   />
                 );
@@ -371,7 +354,6 @@ const CounterForm: React.FC<{
                     capacity={SECTION_TOTALS[key]}
                     net={adj[key]}
                     onChange={(v) => setAdj((a) => ({ ...a, [key]: v }))}
-                    disabled={submitting}
                   />
                 );
               })}
@@ -388,7 +370,6 @@ const CounterForm: React.FC<{
                     label={zoneInfo.label}
                     value={counts[key]}
                     onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
-                    disabled={submitting}
                     colorAccent={key === 'production' ? 'amber' : 'slate'}
                   />
                 );
@@ -408,20 +389,12 @@ const CounterForm: React.FC<{
           <span className="font-bold text-primary text-xl">{total}</span>
         </div>
 
-        {/* Errors */}
-        {formErrors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl space-y-1">
-            {formErrors.map((e, i) => <p key={i}>⚠ {e}</p>)}
-          </div>
-        )}
-
-        <button type="submit" disabled={submitting} className="btn-primary w-full">
+        <button type="submit" className="btn-primary w-full">
           {t('headcount.reviewCount')}
         </button>
         <button
           type="button"
           onClick={handleClearAll}
-          disabled={submitting}
           className="w-full text-xs font-semibold py-2 text-gray-400 hover:text-danger transition-all"
         >
           {t('headcount.clearAll')}
@@ -523,20 +496,11 @@ const HistoryPanel: React.FC<{
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export const HeadcountPage: React.FC<HeadcountPageProps> = ({ serviceId }) => {
-  const {
-    confirmedCounts,
-    counterNames,
-    submitting,
-    submitHeadcount,
-  } = useHeadcount(serviceId);
+  const { confirmedCounts } = useHeadcount(serviceId);
 
   return (
     <div className="space-y-4">
-      <CounterForm
-        onSubmit={submitHeadcount}
-        submitting={submitting}
-        existingCounterNames={counterNames}
-      />
+      <CounterForm />
 
       {/* History */}
       <HistoryPanel confirmedCounts={confirmedCounts} />

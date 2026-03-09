@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useHandedness } from '../../application/hooks/useHandedness';
 
 interface CountInputProps {
   label: string;
@@ -27,6 +28,7 @@ export const CountInput: React.FC<CountInputProps> = ({
   colorAccent = 'blue',
 }) => {
   const { t } = useTranslation();
+  const isLeftHanded = useHandedness();
   const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const colors = ACCENT[colorAccent];
@@ -74,8 +76,8 @@ export const CountInput: React.FC<CountInputProps> = ({
         </span>
       </div>
 
-      {/* −  count  + */}
-      <div className="flex items-center gap-3 px-4 py-4">
+      {/* −  count  + (mirrored for left-handed) */}
+      <div className={`flex items-center gap-3 px-4 py-4 ${isLeftHanded ? 'flex-row-reverse' : ''}`}>
         <button
           type="button"
           onPointerDown={() => !disabled && value > 0 && startRepeat(decrement)}
