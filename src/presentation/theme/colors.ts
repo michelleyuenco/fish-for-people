@@ -3,7 +3,7 @@ export const COLORS = {
   accent: '#C9A84C',
   background: '#F8F7F4',
   success: '#22C55E',
-  occupied: '#F87171',
+  occupied: '#EF4444',
   warning: '#F59E0B',
   danger: '#EF4444',
   white: '#FFFFFF',

@@ -71,7 +71,7 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
   const hasRecommendations = recommendedSeats.size > 0;
 
   return (
-    <div className="w-full min-w-[700px]">
+    <div className="w-fit min-w-[700px]">
       {/* Stage */}
       <div className="mx-auto mb-4 w-3/5 bg-accent/20 border-2 border-accent/40 text-accent text-sm font-bold text-center py-2.5 rounded-b-[50%] rounded-t-lg">
         {t('seats.stage')}
@@ -194,7 +194,8 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
 
                       if (simplified) {
                         if (seat.occupied) {
-                          colorClass = 'bg-occupied';
+                          colorClass = '';
+                          inlineColor = '#EF4444';
                           statusLabel = t('seats.taken');
                         } else if (rowReservation === 'volunteer') {
                           colorClass = 'bg-purple-300 ring-1 ring-purple-400/40';
@@ -212,7 +213,8 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                         if (rowHasPending) {
                           colorClass = 'bg-warning ring-1 ring-warning/60';
                         } else if (seat.occupied) {
-                          colorClass = 'bg-occupied';
+                          colorClass = '';
+                          inlineColor = '#EF4444';
                         } else if (rowReservation === 'volunteer') {
                           colorClass = 'bg-purple-300 ring-1 ring-purple-400/40';
                         } else if (rowReservation === 'family') {
