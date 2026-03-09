@@ -60,6 +60,8 @@ const PRESET_KEYS = [
   'congregation.presetLostItem',
 ] as const;
 
+const HANDEDNESS_KEY = 'fish-for-people:handedness';
+
 const CongregationView: React.FC<{
   serviceId: string;
   onSubmit: (payload: { section: SectionName; row: number; areaLabel?: string; type: RequestType; quantity: number; note: string; contactName?: string; contactPhone?: string }) => Promise<{ success: boolean; requestId?: string }>;
@@ -67,6 +69,7 @@ const CongregationView: React.FC<{
   allRequests: ReturnType<typeof useRequests>['allRequests'];
 }> = ({ onSubmit, submitting, allRequests }) => {
   const { t } = useTranslation();
+  const isLeftHanded = localStorage.getItem(HANDEDNESS_KEY) === 'left';
   const savedLocation = getSavedLocation();
   const [form, setForm] = useState<SubmitFormState>({
     location: savedLocation,
@@ -261,13 +264,20 @@ const CongregationView: React.FC<{
           ))}
         </div>
 
-        {/* Quantity stepper — right-aligned for right-handed ease */}
+        {/* Quantity stepper — aligned to dominant hand side */}
         {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               {t('congregation.howMany')}
             </label>
-            <div className="flex items-center justify-end gap-3">
+            <div className={`flex items-center gap-3 ${isLeftHanded ? 'justify-start flex-row-reverse' : 'justify-end'}`}>
+              <button
+                type="button"
+                onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                aria-label="+"
+              >+</button>
+              <span className="text-2xl font-bold text-primary w-10 text-center">{form.quantity}</span>
               <button
                 type="button"
                 onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
@@ -275,13 +285,6 @@ const CongregationView: React.FC<{
                 className="w-11 h-11 rounded-xl bg-gray-100 text-gray-700 text-xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
                 aria-label="−"
               >−</button>
-              <span className="text-2xl font-bold text-primary w-10 text-center">{form.quantity}</span>
-              <button
-                type="button"
-                onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                aria-label="+"
-              >+</button>
             </div>
           </div>
         )}

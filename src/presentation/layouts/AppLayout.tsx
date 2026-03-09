@@ -5,6 +5,7 @@ import { LANGUAGES } from '../../i18n';
 import type { UserRole } from '../../domain/models/Service';
 
 const LARGE_TEXT_KEY = 'fish-for-people:large-text';
+const HANDEDNESS_KEY = 'fish-for-people:handedness';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -31,6 +32,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const [largeText, setLargeText] = useState(() => {
     return localStorage.getItem(LARGE_TEXT_KEY) === 'true';
   });
+  const [leftHanded, setLeftHanded] = useState(() => {
+    return localStorage.getItem(HANDEDNESS_KEY) === 'left';
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +48,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     }
     localStorage.setItem(LARGE_TEXT_KEY, String(largeText));
   }, [largeText]);
+
+  useEffect(() => {
+    localStorage.setItem(HANDEDNESS_KEY, leftHanded ? 'left' : 'right');
+  }, [leftHanded]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -164,7 +172,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               onClick={() => onChangeRole?.()}
               className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm"
             >
-              <span>{role === 'welcome-team' ? '🎖️' : '🙏'}</span>
+              <span>🔄</span>
               <span className="text-white/80 text-xs">{role === 'welcome-team' ? t('common.welcomeTeam') : t('common.attending')}</span>
             </button>
 
@@ -191,7 +199,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                     onClick={() => { onChangeRole?.(); setMenuOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-all border-b border-gray-100"
                   >
-                    <span className="text-lg w-7 text-center">{role === 'welcome-team' ? '🎖️' : '🙏'}</span>
+                    <span className="text-lg w-7 text-center">🔄</span>
                     <div className="text-left flex-1">
                       <div className="text-sm font-semibold text-gray-800">{roleLabel}</div>
                       <div className="text-[10px] text-gray-400">{t('common.switchRole')}</div>
@@ -259,7 +267,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                   {/* Text size toggle */}
                   <button
                     onClick={() => setLargeText((v) => !v)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-all"
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-all border-b border-gray-100"
                   >
                     <span className="w-7 flex items-center justify-center gap-0.5">
                       <span className="text-xs font-bold text-gray-600 leading-none">A</span>
@@ -272,6 +280,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       largeText ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
                     }`}>
                       {largeText ? t('common.largeText') : t('common.normalText')}
+                    </span>
+                  </button>
+
+                  {/* Handedness toggle */}
+                  <button
+                    onClick={() => setLeftHanded((v) => !v)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-all"
+                  >
+                    <span className="text-lg w-7 text-center">✋</span>
+                    <span className="text-sm text-gray-700 flex-1 text-left">
+                      {t('common.handedness')}
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      leftHanded ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {leftHanded ? t('common.leftHanded') : t('common.rightHanded')}
                     </span>
                   </button>
                 </div>

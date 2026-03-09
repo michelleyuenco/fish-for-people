@@ -22,7 +22,10 @@
     "help": "Help",
     "edit": "Edit",
     "submitting": "Submitting...",
-    "confirmed": "confirmed"
+    "confirmed": "confirmed",
+    "handedness": "Dominant Hand",
+    "leftHanded": "Left",
+    "rightHanded": "Right"
   },
   "home": {
     "continueAs": "Continue as {{role}} →",

@@ -22,7 +22,10 @@
     "help": "说明",
     "edit": "编辑",
     "submitting": "提交中...",
-    "confirmed": "已确认"
+    "confirmed": "已确认",
+    "handedness": "惯用手",
+    "leftHanded": "左手",
+    "rightHanded": "右手"
   },
   "home": {
     "continueAs": "以{{role}}身份继续 →",
