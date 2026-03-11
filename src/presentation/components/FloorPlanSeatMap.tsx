@@ -146,8 +146,16 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                 const rowHasPending = !simplified && pendingRequestRows.has(rowKey);
 
                 const padding = maxSeats - seatsInRow;
-                const padLeft = Math.floor(padding / 2);
-                const padRight = padding - padLeft;
+                // Left section: align to aisle (right), pad on wall side (left)
+                // Right section: align to aisle (left), pad on wall side (right)
+                // Middle section: centered via flex justify-center in a fixed-width wrapper
+                const padLeft = section.name === 'left' ? padding
+                  : section.name === 'right' ? 0
+                  : 0;
+                const padRight = section.name === 'right' ? padding
+                  : section.name === 'left' ? 0
+                  : 0;
+                const useCenter = section.name === 'middle' && padding > 0;
 
                 const hasUnoccupied = Array.from({ length: seatsInRow }, (_, ci) => {
                   const sid = `${section.name}-${rowNum}-${ci + 1}`;
@@ -169,100 +177,118 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                                    bg-gray-300 hover:bg-primary active:scale-90 cursor-pointer"
                       />
                     )}
-                    {Array.from({ length: padLeft }, (_, i) => (
-                      <span key={`pl-${i}`} className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] flex-shrink-0" />
-                    ))}
-                    {Array.from({ length: seatsInRow }, (_, colIdx) => {
-                      const colNum = colIdx + 1;
-                      const seatId = `${section.name}-${rowNum}-${colNum}`;
-                      const seat = seatMap.get(seatId) || {
-                        id: seatId,
-                        section: section.name as SectionName,
-                        row: rowNum,
-                        col: colNum,
-                        occupied: false,
-                        reservedFor: 'none' as const,
-                        updatedAt: null,
-                      };
-                      const isToggling = toggling.has(seatId);
-                      const isRecommended = hasRecommendations && recommendedSeats.has(seatId);
-                      const rowReservation = getRowReservation(section.name, rowNum);
+                    {(() => {
+                      const seatButtons = Array.from({ length: seatsInRow }, (_, colIdx) => {
+                        const colNum = colIdx + 1;
+                        const seatId = `${section.name}-${rowNum}-${colNum}`;
+                        const seat = seatMap.get(seatId) || {
+                          id: seatId,
+                          section: section.name as SectionName,
+                          row: rowNum,
+                          col: colNum,
+                          occupied: false,
+                          reservedFor: 'none' as const,
+                          updatedAt: null,
+                        };
+                        const isToggling = toggling.has(seatId);
+                        const isRecommended = hasRecommendations && recommendedSeats.has(seatId);
+                        const rowReservation = getRowReservation(section.name, rowNum);
 
-                      let colorClass: string;
-                      let statusLabel: string;
-                      let inlineColor: string | undefined;
+                        let colorClass: string;
+                        let statusLabel: string;
+                        let inlineColor: string | undefined;
 
-                      if (simplified) {
-                        if (seat.occupied) {
-                          colorClass = '';
-                          inlineColor = '#EF4444';
-                          statusLabel = t('seats.taken');
-                        } else if (rowReservation === 'volunteer') {
-                          colorClass = 'bg-purple-300 ring-1 ring-purple-400/40';
-                          statusLabel = t('seats.reservedFor', { type: t('seats.legendVolunteer') });
-                        } else if (rowReservation === 'family') {
-                          colorClass = 'bg-blue-300 ring-1 ring-blue-400/40';
-                          statusLabel = t('seats.reservedFor', { type: t('seats.legendFamily') });
+                        if (simplified) {
+                          if (seat.occupied) {
+                            colorClass = '';
+                            inlineColor = '#EF4444';
+                            statusLabel = t('seats.taken');
+                          } else if (rowReservation === 'volunteer') {
+                            colorClass = 'bg-purple-300 ring-1 ring-purple-400/40';
+                            statusLabel = t('seats.reservedFor', { type: t('seats.legendVolunteer') });
+                          } else if (rowReservation === 'family') {
+                            colorClass = 'bg-blue-300 ring-1 ring-blue-400/40';
+                            statusLabel = t('seats.reservedFor', { type: t('seats.legendFamily') });
+                          } else {
+                            colorClass = '';
+                            inlineColor = preferenceToGreen(getSeatPreference(section.name, colIdx, seatsInRow, rowNum));
+                            statusLabel = isRecommended ? t('seats.suggested') : t('seats.available');
+                          }
                         } else {
-                          // Green seat — use gradient
-                          colorClass = '';
-                          inlineColor = preferenceToGreen(getSeatPreference(section.name, colIdx, seatsInRow, rowNum));
-                          statusLabel = isRecommended ? t('seats.suggested') : t('seats.available');
-                        }
-                      } else {
-                        if (rowHasPending) {
-                          colorClass = 'bg-warning ring-1 ring-warning/60';
-                        } else if (seat.occupied) {
-                          colorClass = '';
-                          inlineColor = '#EF4444';
-                        } else if (rowReservation === 'volunteer') {
-                          colorClass = 'bg-purple-300 ring-1 ring-purple-400/40';
-                        } else if (rowReservation === 'family') {
-                          colorClass = 'bg-blue-300 ring-1 ring-blue-400/40';
-                        } else if (seat.reservedFor === 'family') {
-                          colorClass = 'bg-blue-300 ring-1 ring-blue-200/60';
-                        } else if (seat.reservedFor === 'volunteer') {
-                          colorClass = 'bg-purple-300 ring-1 ring-purple-200/60';
-                        } else {
-                          // Green seat — use gradient
-                          colorClass = '';
-                          inlineColor = preferenceToGreen(getSeatPreference(section.name, colIdx, seatsInRow, rowNum));
+                          if (rowHasPending) {
+                            colorClass = 'bg-warning ring-1 ring-warning/60';
+                          } else if (seat.occupied) {
+                            colorClass = '';
+                            inlineColor = '#EF4444';
+                          } else if (rowReservation === 'volunteer') {
+                            colorClass = 'bg-purple-300 ring-1 ring-purple-400/40';
+                          } else if (rowReservation === 'family') {
+                            colorClass = 'bg-blue-300 ring-1 ring-blue-400/40';
+                          } else if (seat.reservedFor === 'family') {
+                            colorClass = 'bg-blue-300 ring-1 ring-blue-200/60';
+                          } else if (seat.reservedFor === 'volunteer') {
+                            colorClass = 'bg-purple-300 ring-1 ring-purple-200/60';
+                          } else {
+                            colorClass = '';
+                            inlineColor = preferenceToGreen(getSeatPreference(section.name, colIdx, seatsInRow, rowNum));
+                          }
+
+                          statusLabel = rowHasPending
+                            ? t('seats.requestPending')
+                            : seat.occupied
+                            ? t('seats.occupied')
+                            : rowReservation
+                            ? t('seats.reservedFor', { type: rowReservation })
+                            : seat.reservedFor !== 'none'
+                            ? t('seats.reservedFor', { type: seat.reservedFor })
+                            : t('seats.available');
                         }
 
-                        statusLabel = rowHasPending
-                          ? t('seats.requestPending')
-                          : seat.occupied
-                          ? t('seats.occupied')
-                          : rowReservation
-                          ? t('seats.reservedFor', { type: rowReservation })
-                          : seat.reservedFor !== 'none'
-                          ? t('seats.reservedFor', { type: seat.reservedFor })
-                          : t('seats.available');
+                        return (
+                          <button
+                            key={seatId}
+                            onClick={() => {
+                              if (canToggle && !isToggling) onToggle(seat);
+                            }}
+                            disabled={!canToggle || isToggling}
+                            aria-label={`${section.label} ${t('welcomeTeam.row', { row: rowNum })} ${colNum}: ${statusLabel}`}
+                            aria-pressed={seat.occupied}
+                            style={inlineColor ? { backgroundColor: inlineColor } : undefined}
+                            className={`
+                              w-[22px] h-[22px] md:w-[26px] md:h-[26px] rounded-sm flex-shrink-0 transition-all duration-150
+                              ${colorClass}
+                              ${canToggle && !isToggling ? 'cursor-pointer hover:opacity-80 hover:scale-110 active:scale-90' : 'cursor-default'}
+                              ${isToggling ? 'scale-75 opacity-60 animate-pulse' : ''}
+                              focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary
+                            `}
+                          />
+                        );
+                      });
+
+                      if (useCenter) {
+                        // Center with pixel-accurate spacers so the row toggle stays adjacent
+                        // Mobile: (22+2)*padding/2 - gap = 10px, MD: (26+2)*padding/2 - gap = 12px
+                        return (
+                          <>
+                            <span className="w-[10px] h-[22px] md:w-[12px] md:h-[26px] flex-shrink-0" />
+                            {seatButtons}
+                            <span className="w-[10px] h-[22px] md:w-[12px] md:h-[26px] flex-shrink-0" />
+                          </>
+                        );
                       }
 
                       return (
-                        <button
-                          key={seatId}
-                          onClick={() => {
-                            if (canToggle && !isToggling) onToggle(seat);
-                          }}
-                          disabled={!canToggle || isToggling}
-                          aria-label={`${section.label} ${t('welcomeTeam.row', { row: rowNum })} ${colNum}: ${statusLabel}`}
-                          aria-pressed={seat.occupied}
-                          style={inlineColor ? { backgroundColor: inlineColor } : undefined}
-                          className={`
-                            w-[22px] h-[22px] md:w-[26px] md:h-[26px] rounded-sm flex-shrink-0 transition-all duration-150
-                            ${colorClass}
-                            ${canToggle && !isToggling ? 'cursor-pointer hover:opacity-80 hover:scale-110 active:scale-90' : 'cursor-default'}
-                            ${isToggling ? 'scale-75 opacity-60 animate-pulse' : ''}
-                            focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary
-                          `}
-                        />
+                        <>
+                          {Array.from({ length: padLeft }, (_, i) => (
+                            <span key={`pl-${i}`} className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] flex-shrink-0" />
+                          ))}
+                          {seatButtons}
+                          {Array.from({ length: padRight }, (_, i) => (
+                            <span key={`pr-${i}`} className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] flex-shrink-0" />
+                          ))}
+                        </>
                       );
-                    })}
-                    {Array.from({ length: padRight }, (_, i) => (
-                      <span key={`pr-${i}`} className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] flex-shrink-0" />
-                    ))}
+                    })()}
                   </div>
                 );
               })}
