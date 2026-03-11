@@ -176,12 +176,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
               >
                 <span className="text-lg leading-none">✕</span>
               </button>
-              {/* Ichthys fish SVG */}
+              {/* Ichthys fish SVG — classic two-arc symbol */}
               <div className="w-16 h-16 mx-auto mb-3 bg-white/15 rounded-full flex items-center justify-center">
-                <svg viewBox="0 0 80 48" className="w-11 h-11" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 24 C28 8, 52 8, 60 24 C52 40, 28 40, 12 24 Z" />
-                  <circle cx="50" cy="21" r="2.5" fill="white" stroke="none" />
-                  <path d="M60 24 L72 14 L72 34 Z" fill="none" />
+                <svg viewBox="0 0 72 48" className="w-11 h-11" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {/* Upper arc: tip → body → tail overshoot */}
+                  <path d="M6 24 C18 8, 40 4, 54 12 C60 16, 64 20, 66 24 L58 18" />
+                  {/* Lower arc: tip → body → tail overshoot */}
+                  <path d="M6 24 C18 40, 40 44, 54 36 C60 32, 64 28, 66 24 L58 30" />
+                  {/* Eye */}
+                  <circle cx="30" cy="20" r="2" fill="white" stroke="none" />
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-white">{t('home.ichthysTitle')}</h2>
