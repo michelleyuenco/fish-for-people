@@ -183,29 +183,29 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
               <p className="text-white/70 text-sm mt-1">{t('home.ichthysSubtitle')}</p>
             </div>
 
-            <div className="px-6 py-5 space-y-5">
+            <div className="px-5 py-4 space-y-4">
               {/* Intro */}
               <p className="text-sm text-gray-600 leading-relaxed">
                 {t('home.ichthysIntro')}
               </p>
 
               {/* Acrostic table */}
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse text-center">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="py-2 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-10"></th>
-                    <th className="py-2 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('home.ichthysColGreek')}</th>
-                    <th className="py-2 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('home.ichthysColTranslit')}</th>
-                    <th className="py-2 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('home.ichthysColMeaning')}</th>
+                    <th className="py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-[15%]"></th>
+                    <th className="py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-[30%]">{t('home.ichthysColGreek')}</th>
+                    <th className="py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-[28%]">{t('home.ichthysColTranslit')}</th>
+                    <th className="py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-[27%]">{t('home.ichthysColMeaning')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ICHTHYS_LETTERS.map((letter, i) => (
                     <tr key={letter.greek} className={i < ICHTHYS_LETTERS.length - 1 ? 'border-b border-gray-100' : ''}>
-                      <td className="py-2.5 text-2xl font-bold text-primary text-center">{letter.greek}</td>
-                      <td className="py-2.5 text-sm text-gray-500 italic">{letter.greekWord}</td>
-                      <td className="py-2.5 text-xs text-gray-400">{t(letter.translitKey)}</td>
-                      <td className="py-2.5 text-sm font-semibold text-gray-700 text-right">{t(letter.meaningKey)}</td>
+                      <td className="py-3 text-2xl font-bold text-primary">{letter.greek}</td>
+                      <td className="py-3 text-sm text-gray-500 italic">{letter.greekWord}</td>
+                      <td className="py-3 text-xs text-gray-400">{t(letter.translitKey)}</td>
+                      <td className="py-3 text-sm font-semibold text-gray-700">{t(letter.meaningKey)}</td>
                     </tr>
                   ))}
                 </tbody>
