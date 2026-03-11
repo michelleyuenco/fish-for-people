@@ -185,7 +185,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
 
             <div className="px-5 py-4 space-y-4">
               {/* Intro */}
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-600 leading-relaxed text-center">
                 {t('home.ichthysIntro')}
               </p>
 
