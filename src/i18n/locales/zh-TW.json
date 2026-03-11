@@ -51,7 +51,9 @@
     "ichthysUMeaning": "兒子",
     "ichthysS": "Sōtēr",
     "ichthysSMeaning": "救主",
-    "ichthysConnection": "這與馬可福音 1:17 美妙地連結在一起——耶穌呼召漁夫去「得人如得魚」，而魚本身也成為了基督教最早的標誌。形象與話語，在此完美交匯。"
+    "ichthysColGreek": "希臘文",
+    "ichthysColTranslit": "發音",
+    "ichthysColMeaning": "含義"
   },
   "nav": {
     "seats": "座位",

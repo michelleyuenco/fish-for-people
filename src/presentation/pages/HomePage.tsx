@@ -178,10 +178,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
               </button>
               {/* Ichthys fish SVG */}
               <div className="w-16 h-16 mx-auto mb-3 bg-white/15 rounded-full flex items-center justify-center">
-                <svg viewBox="0 0 64 40" className="w-10 h-10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 20 C20 6, 44 6, 56 20 C44 34, 20 34, 8 20 Z" />
-                  <circle cx="46" cy="18" r="2" fill="white" stroke="none" />
-                  <path d="M56 20 L64 12 L64 28 Z" fill="none" />
+                <svg viewBox="0 0 80 48" className="w-11 h-11" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 24 C28 8, 52 8, 60 24 C52 40, 28 40, 12 24 Z" />
+                  <circle cx="50" cy="21" r="2.5" fill="white" stroke="none" />
+                  <path d="M60 24 L72 14 L72 34 Z" fill="none" />
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-white">{t('home.ichthysTitle')}</h2>
@@ -195,34 +195,26 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
               </p>
 
               {/* Acrostic table */}
-              <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                {ICHTHYS_LETTERS.map((letter, i) => (
-                  <div
-                    key={letter.greek}
-                    className={`flex items-center gap-3 px-4 py-2.5 ${i < ICHTHYS_LETTERS.length - 1 ? 'border-b border-gray-100' : ''}`}
-                  >
-                    <span className="text-2xl font-bold text-primary w-8 text-center flex-shrink-0">{letter.greek}</span>
-                    <span className="text-sm text-gray-500 italic w-20 flex-shrink-0">{letter.greekWord}</span>
-                    <span className="text-xs text-gray-400 w-16 flex-shrink-0">{t(letter.translitKey)}</span>
-                    <span className="text-sm font-semibold text-gray-700 flex-1 text-right">{t(letter.meaningKey)}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Connection to Mark 1:17 */}
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {t('home.ichthysConnection')}
-              </p>
-
-              {/* Bible verse callback */}
-              <div className="border-t border-gray-100 pt-4 text-center">
-                <p className="text-sm text-gray-500 italic leading-relaxed">
-                  {t('home.bibleVerse')}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {t('home.bibleRef')}
-                </p>
-              </div>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="py-2 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-10"></th>
+                    <th className="py-2 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('home.ichthysColGreek')}</th>
+                    <th className="py-2 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('home.ichthysColTranslit')}</th>
+                    <th className="py-2 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('home.ichthysColMeaning')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ICHTHYS_LETTERS.map((letter, i) => (
+                    <tr key={letter.greek} className={i < ICHTHYS_LETTERS.length - 1 ? 'border-b border-gray-100' : ''}>
+                      <td className="py-2.5 text-2xl font-bold text-primary text-center">{letter.greek}</td>
+                      <td className="py-2.5 text-sm text-gray-500 italic">{letter.greekWord}</td>
+                      <td className="py-2.5 text-xs text-gray-400">{t(letter.translitKey)}</td>
+                      <td className="py-2.5 text-sm font-semibold text-gray-700 text-right">{t(letter.meaningKey)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

@@ -51,7 +51,9 @@
     "ichthysUMeaning": "儿子",
     "ichthysS": "Sōtēr",
     "ichthysSMeaning": "救主",
-    "ichthysConnection": "这与马可福音 1:17 美妙地连结在一起——耶稣呼召渔夫去「得人如得鱼」，而鱼本身也成为了基督教最早的标志。形象与话语，在此完美交汇。"
+    "ichthysColGreek": "希腊文",
+    "ichthysColTranslit": "发音",
+    "ichthysColMeaning": "含义"
   },
   "nav": {
     "seats": "座位",
