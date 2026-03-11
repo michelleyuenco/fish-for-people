@@ -132,18 +132,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           <p className="text-[11px] text-gray-400 mt-1">
             {t('home.bibleRef')}
           </p>
-          <button
-            onClick={() => setShowIchthys(true)}
-            className="mt-2 inline-flex items-center gap-1 text-xs text-primary/60 hover:text-primary transition-colors"
-          >
-            <span>🐟</span>
-            <span className="underline underline-offset-2">{t('home.whyTheFish')}</span>
-          </button>
         </div>
       </div>
 
-      {/* Footer: GitHub link */}
-      <div className="flex-shrink-0 pb-3 text-center">
+      {/* Footer */}
+      <div className="flex-shrink-0 pb-3 text-center space-y-1.5">
+        <button
+          onClick={() => setShowIchthys(true)}
+          className="inline-flex items-center gap-1 text-xs text-primary/60 hover:text-primary transition-colors"
+        >
+          <span>🐟</span>
+          <span className="underline underline-offset-2">{t('home.whyTheFish')}</span>
+        </button>
         <a
           href={GITHUB_URL}
           target="_blank"
