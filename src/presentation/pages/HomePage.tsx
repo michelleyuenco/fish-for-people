@@ -209,34 +209,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
                 ))}
               </div>
 
-              {/* Summary */}
-              <div className="bg-primary/5 rounded-xl px-4 py-3 text-center">
-                <p className="text-base font-bold text-primary italic">
-                  {t('home.ichthysSummary')}
-                </p>
-              </div>
-
-              {/* History */}
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {t('home.ichthysHistory')}
-                </p>
-
-                {/* Sand drawing illustration */}
-                <div className="flex justify-center py-2">
-                  <div className="relative w-32 h-16">
-                    {/* Two arcs forming a fish */}
-                    <svg viewBox="0 0 120 60" className="w-full h-full">
-                      <path d="M10 30 Q60 -5 110 30" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 3" />
-                      <path d="M10 30 Q60 65 110 30" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 3" />
-                    </svg>
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {t('home.ichthysConnection')}
-                </p>
-              </div>
+              {/* Connection to Mark 1:17 */}
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {t('home.ichthysConnection')}
+              </p>
 
               {/* Bible verse callback */}
               <div className="border-t border-gray-100 pt-4 text-center">
