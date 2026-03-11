@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES } from '../../i18n';
 import type { UserRole } from '../../domain/models/Service';
 
 const ROLE_STORAGE_KEY = 'fish-for-people:last-role';
 const GITHUB_URL = 'https://github.com/michelleyuenco/fish-for-people';
+
+const ICHTHYS_LETTERS: { greek: string; greekWord: string; translitKey: string; meaningKey: string }[] = [
+  { greek: 'Ι', greekWord: 'Ἰησοῦς', translitKey: 'home.ichthysI', meaningKey: 'home.ichthysIMeaning' },
+  { greek: 'Χ', greekWord: 'Χριστός', translitKey: 'home.ichthysCh', meaningKey: 'home.ichthysChMeaning' },
+  { greek: 'Θ', greekWord: 'Θεοῦ', translitKey: 'home.ichthysTh', meaningKey: 'home.ichthysThMeaning' },
+  { greek: 'Υ', greekWord: 'Υἱός', translitKey: 'home.ichthysU', meaningKey: 'home.ichthysUMeaning' },
+  { greek: 'Σ', greekWord: 'Σωτήρ', translitKey: 'home.ichthysS', meaningKey: 'home.ichthysSMeaning' },
+];
 
 interface HomePageProps {
   onSelectRole: (role: UserRole) => void;
@@ -13,6 +21,7 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
   const { t, i18n } = useTranslation();
   const lastRole = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole | null;
+  const [showIchthys, setShowIchthys] = useState(false);
 
   const handleSelectRole = (role: UserRole) => {
     localStorage.setItem(ROLE_STORAGE_KEY, role);
@@ -115,7 +124,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           </p>
         </div>
 
-        {/* Bible verse */}
+        {/* Bible verse + Why the fish */}
         <div className="mt-6 text-center px-2">
           <p className="text-xs sm:text-sm text-gray-400 italic leading-relaxed">
             {t('home.bibleVerse')}
@@ -123,6 +132,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           <p className="text-[11px] text-gray-400 mt-1">
             {t('home.bibleRef')}
           </p>
+          <button
+            onClick={() => setShowIchthys(true)}
+            className="mt-2 inline-flex items-center gap-1 text-xs text-primary/60 hover:text-primary transition-colors"
+          >
+            <span>🐟</span>
+            <span className="underline underline-offset-2">{t('home.whyTheFish')}</span>
+          </button>
         </div>
       </div>
 
@@ -140,6 +156,101 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           Open Source — Contribute on GitHub
         </a>
       </div>
+
+      {/* Ichthys modal */}
+      {showIchthys && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200"
+          onClick={() => setShowIchthys(false)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[85dvh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with fish icon */}
+            <div className="bg-primary rounded-t-3xl px-6 pt-6 pb-5 text-center relative">
+              <button
+                onClick={() => setShowIchthys(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 flex items-center justify-center text-white transition-all"
+                aria-label={t('common.close')}
+              >
+                <span className="text-lg leading-none">✕</span>
+              </button>
+              {/* Ichthys fish SVG */}
+              <div className="w-16 h-16 mx-auto mb-3 bg-white/15 rounded-full flex items-center justify-center">
+                <svg viewBox="0 0 64 40" className="w-10 h-10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 20 C20 6, 44 6, 56 20 C44 34, 20 34, 8 20 Z" />
+                  <circle cx="46" cy="18" r="2" fill="white" stroke="none" />
+                  <path d="M56 20 L64 12 L64 28 Z" fill="none" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white">{t('home.ichthysTitle')}</h2>
+              <p className="text-white/70 text-sm mt-1">{t('home.ichthysSubtitle')}</p>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Intro */}
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {t('home.ichthysIntro')}
+              </p>
+
+              {/* Acrostic table */}
+              <div className="rounded-2xl border border-gray-100 overflow-hidden">
+                {ICHTHYS_LETTERS.map((letter, i) => (
+                  <div
+                    key={letter.greek}
+                    className={`flex items-center gap-3 px-4 py-2.5 ${i < ICHTHYS_LETTERS.length - 1 ? 'border-b border-gray-100' : ''}`}
+                  >
+                    <span className="text-2xl font-bold text-primary w-8 text-center flex-shrink-0">{letter.greek}</span>
+                    <span className="text-sm text-gray-500 italic w-20 flex-shrink-0">{letter.greekWord}</span>
+                    <span className="text-xs text-gray-400 w-16 flex-shrink-0">{t(letter.translitKey)}</span>
+                    <span className="text-sm font-semibold text-gray-700 flex-1 text-right">{t(letter.meaningKey)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary */}
+              <div className="bg-primary/5 rounded-xl px-4 py-3 text-center">
+                <p className="text-base font-bold text-primary italic">
+                  {t('home.ichthysSummary')}
+                </p>
+              </div>
+
+              {/* History */}
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {t('home.ichthysHistory')}
+                </p>
+
+                {/* Sand drawing illustration */}
+                <div className="flex justify-center py-2">
+                  <div className="relative w-32 h-16">
+                    {/* Two arcs forming a fish */}
+                    <svg viewBox="0 0 120 60" className="w-full h-full">
+                      <path d="M10 30 Q60 -5 110 30" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 3" />
+                      <path d="M10 30 Q60 65 110 30" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 3" />
+                    </svg>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {t('home.ichthysConnection')}
+                </p>
+              </div>
+
+              {/* Bible verse callback */}
+              <div className="border-t border-gray-100 pt-4 text-center">
+                <p className="text-sm text-gray-500 italic leading-relaxed">
+                  {t('home.bibleVerse')}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {t('home.bibleRef')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
