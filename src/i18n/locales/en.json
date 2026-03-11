@@ -34,7 +34,9 @@
     "switchRole": "Select your role",
     "welcomeTeamDesc": "Track seats · Resolve requests · Count attendance",
     "attendingDesc": "Request a pen, offering envelope, translation headset or other help",
-    "tapCard": "Tap the card that describes you"
+    "tapCard": "Tap the card that describes you",
+    "bibleVerse": "\"Come, follow me,\" Jesus said, \"and I will send you out to fish for people.\"",
+    "bibleRef": "— Mark 1:17 (NIV)"
   },
   "nav": {
     "seats": "Seats",

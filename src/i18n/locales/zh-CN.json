@@ -34,7 +34,9 @@
     "switchRole": "选择您的身份",
     "welcomeTeamDesc": "追踪座位 · 处理请求 · 统计人数",
     "attendingDesc": "索取笔、奉献信封、翻译耳机或其他协助",
-    "tapCard": "请选择您的身份"
+    "tapCard": "请选择您的身份",
+    "bibleVerse": "耶稣对他们说：「来跟从我，我要叫你们得人如得鱼一样。」",
+    "bibleRef": "— 马可福音 1:17"
   },
   "nav": {
     "seats": "座位",

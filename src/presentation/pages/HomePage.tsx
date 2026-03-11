@@ -22,99 +22,112 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
   const isSelected = (role: UserRole) => lastRole === role;
 
   return (
-    <div className="h-[100dvh] bg-background flex flex-col items-center px-6 py-4 overflow-hidden">
-      {/* Top section: logo + language */}
-      <div className="flex-shrink-0 text-center pt-2">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
-          <span className="text-3xl sm:text-4xl">🐟</span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t('common.appName')}</h1>
-        <p className="text-gray-500 mt-1 text-sm">{t('common.welcomeTeam')}</p>
-      </div>
-
-      {/* Language picker */}
-      <div className="flex gap-2 my-3 flex-shrink-0">
-        {LANGUAGES.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
-            className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold transition-all ${
-              i18n.language === lang.code
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {lang.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Role Selection — flex-1 to fill available space, centered */}
-      <div className="flex-1 flex flex-col justify-center w-full max-w-sm min-h-0">
-        <p className="text-center text-gray-600 font-semibold text-sm sm:text-base mb-3">
-          {lastRole ? t('home.switchRole') : t('home.whoAreYou')}
-        </p>
-
-        <div className="space-y-3">
-          {/* Welcome Team button */}
-          <button
-            onClick={() => handleSelectRole('welcome-team')}
-            className={`w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
-              isSelected('welcome-team')
-                ? 'bg-primary text-white shadow-lg ring-2 ring-accent'
-                : 'bg-primary text-white shadow-md hover:bg-primary/90'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                🎖️
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-lg sm:text-xl flex items-center gap-2">
-                  {t('common.welcomeTeam')}
-                  {isSelected('welcome-team') && <span className="text-accent text-sm">✓</span>}
-                </div>
-                <div className="text-white/80 text-xs sm:text-sm mt-0.5 leading-snug">
-                  {t('home.welcomeTeamDesc')}
-                </div>
-              </div>
-            </div>
-          </button>
-
-          {/* Congregation button */}
-          <button
-            onClick={() => handleSelectRole('congregation')}
-            className={`w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
-              isSelected('congregation')
-                ? 'bg-white border-2 border-primary text-primary shadow-lg ring-2 ring-accent'
-                : 'bg-white border-2 border-primary text-primary shadow-sm hover:bg-primary/5'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 sm:w-14 sm:h-14 bg-primary/10 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                🙏
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-lg sm:text-xl text-primary flex items-center gap-2">
-                  {t('common.imAttending')}
-                  {isSelected('congregation') && <span className="text-accent text-sm">✓</span>}
-                </div>
-                <div className="text-gray-500 text-xs sm:text-sm mt-0.5 leading-snug">
-                  {t('home.attendingDesc')}
-                </div>
-              </div>
-            </div>
-          </button>
+    <div className="h-[100dvh] bg-background flex flex-col items-center px-6 overflow-hidden">
+      {/* Centering wrapper — uses padding-bottom to visually shift content upward */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm pb-12">
+        {/* Logo + language */}
+        <div className="flex-shrink-0 text-center">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
+            <span className="text-3xl sm:text-4xl">🐟</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t('common.appName')}</h1>
+          <p className="text-gray-500 mt-1 text-sm">{t('common.welcomeTeam')}</p>
         </div>
 
-        {/* Helper text */}
-        <p className="text-xs text-gray-400 mt-3 text-center">
-          {t('home.tapCard')}
-        </p>
+        {/* Language picker */}
+        <div className="flex gap-2 my-3 flex-shrink-0">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => i18n.changeLanguage(lang.code)}
+              className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                i18n.language === lang.code
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Role Selection */}
+        <div className="w-full">
+          <p className="text-center text-gray-600 font-semibold text-sm sm:text-base mb-3">
+            {lastRole ? t('home.switchRole') : t('home.whoAreYou')}
+          </p>
+
+          <div className="space-y-3">
+            {/* Welcome Team button */}
+            <button
+              onClick={() => handleSelectRole('welcome-team')}
+              className={`w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
+                isSelected('welcome-team')
+                  ? 'bg-primary text-white shadow-lg ring-2 ring-accent'
+                  : 'bg-primary text-white shadow-md hover:bg-primary/90'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
+                  🎖️
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-lg sm:text-xl flex items-center gap-2">
+                    {t('common.welcomeTeam')}
+                    {isSelected('welcome-team') && <span className="text-accent text-sm">✓</span>}
+                  </div>
+                  <div className="text-white/80 text-xs sm:text-sm mt-0.5 leading-snug">
+                    {t('home.welcomeTeamDesc')}
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Congregation button */}
+            <button
+              onClick={() => handleSelectRole('congregation')}
+              className={`w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
+                isSelected('congregation')
+                  ? 'bg-white border-2 border-primary text-primary shadow-lg ring-2 ring-accent'
+                  : 'bg-white border-2 border-primary text-primary shadow-sm hover:bg-primary/5'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 bg-primary/10 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
+                  🙏
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-lg sm:text-xl text-primary flex items-center gap-2">
+                    {t('common.imAttending')}
+                    {isSelected('congregation') && <span className="text-accent text-sm">✓</span>}
+                  </div>
+                  <div className="text-gray-500 text-xs sm:text-sm mt-0.5 leading-snug">
+                    {t('home.attendingDesc')}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Helper text */}
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            {t('home.tapCard')}
+          </p>
+        </div>
+
+        {/* Bible verse */}
+        <div className="mt-6 text-center px-2">
+          <p className="text-xs sm:text-sm text-gray-400 italic leading-relaxed">
+            {t('home.bibleVerse')}
+          </p>
+          <p className="text-[11px] text-gray-400 mt-1">
+            {t('home.bibleRef')}
+          </p>
+        </div>
       </div>
 
       {/* Footer: GitHub link */}
-      <div className="flex-shrink-0 pb-2 text-center">
+      <div className="flex-shrink-0 pb-3 text-center">
         <a
           href={GITHUB_URL}
           target="_blank"
