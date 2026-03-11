@@ -101,10 +101,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <header className="bg-primary text-white px-4 pt-safe sticky top-0 z-40 shadow-md">
         <div className="flex items-center justify-between h-14">
           {/* Logo + app name */}
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => onChangeRole?.()}
+            className="flex items-center gap-2 hover:opacity-80 active:opacity-60 transition-opacity"
+            aria-label={t('common.appName')}
+          >
             <span className="text-2xl">🐟</span>
             <span className="hidden md:inline text-lg font-bold tracking-tight">{t('common.appName')}</span>
-          </div>
+          </button>
 
           {/* Desktop inline nav tabs (welcome team only, md+) */}
           {role === 'welcome-team' && (
