@@ -62,17 +62,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           ))}
         </div>
 
+        {/* Bible verse */}
+        <div className="text-center px-2 mb-4">
+          <p className="text-xs sm:text-sm text-gray-500 italic leading-relaxed">
+            {t('home.bibleVerse')}
+          </p>
+          <p className="text-[11px] text-gray-400 mt-1">
+            {t('home.bibleRef')}
+          </p>
+        </div>
+
         {/* Role Selection */}
         <div className="w-full">
-          <p className="text-center text-gray-500 italic text-xs sm:text-sm mb-3 leading-relaxed px-2">
-            {lastRole ? t('home.switchRole') : t('home.whoAreYou')}
-          </p>
-
           <div className="space-y-3">
             {/* Welcome Team button */}
             <button
               onClick={() => handleSelectRole('welcome-team')}
-              className={`w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
+              className={`group w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
                 isSelected('welcome-team')
                   ? 'bg-primary text-white shadow-lg ring-2 ring-accent'
                   : 'bg-primary text-white shadow-md hover:bg-primary/90'
@@ -87,8 +93,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
                     {t('common.welcomeTeam')}
                     {isSelected('welcome-team') && <span className="text-accent text-sm">✓</span>}
                   </div>
-                  <div className="text-white/80 text-xs sm:text-sm mt-0.5 leading-snug">
-                    {t('home.welcomeTeamDesc')}
+                  <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
+                    <div className="overflow-hidden">
+                      <div className="text-white/80 text-xs sm:text-sm mt-1 leading-snug italic">
+                        {t('home.welcomeTeamDesc')}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -97,7 +107,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
             {/* Congregation button */}
             <button
               onClick={() => handleSelectRole('congregation')}
-              className={`w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
+              className={`group w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
                 isSelected('congregation')
                   ? 'bg-white border-2 border-primary text-primary shadow-lg ring-2 ring-accent'
                   : 'bg-white border-2 border-primary text-primary shadow-sm hover:bg-primary/5'
@@ -112,28 +122,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
                     {t('common.imAttending')}
                     {isSelected('congregation') && <span className="text-accent text-sm">✓</span>}
                   </div>
-                  <div className="text-gray-500 text-xs sm:text-sm mt-0.5 leading-snug">
-                    {t('home.attendingDesc')}
+                  <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
+                    <div className="overflow-hidden">
+                      <div className="text-gray-500 text-xs sm:text-sm mt-1 leading-snug italic">
+                        {t('home.attendingDesc')}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </button>
           </div>
-
-          {/* Helper text */}
-          <p className="text-sm text-gray-600 font-medium mt-3 text-center">
-            {t('home.tapCard')}
-          </p>
-        </div>
-
-        {/* Bible verse + Why the fish */}
-        <div className="mt-6 text-center px-2">
-          <p className="text-xs sm:text-sm text-gray-400 italic leading-relaxed">
-            {t('home.bibleVerse')}
-          </p>
-          <p className="text-[11px] text-gray-400 mt-1">
-            {t('home.bibleRef')}
-          </p>
         </div>
       </div>
 
