@@ -80,7 +80,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                  🤝
+                  🙌
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-lg sm:text-xl flex items-center gap-2">
