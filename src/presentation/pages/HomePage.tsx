@@ -40,7 +40,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
             <span className="text-3xl sm:text-4xl">🐟</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t('common.appName')}</h1>
-          <p className="text-gray-500 mt-1 text-sm">{t('common.welcomeTeam')}</p>
         </div>
 
         {/* Language picker */}
