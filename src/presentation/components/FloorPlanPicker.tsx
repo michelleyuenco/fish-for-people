@@ -76,7 +76,7 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
       section: zone.section,
       area: zone.area,
       row: zone.row,
-      areaLabel: t(AREA_I18N[zone.area]),
+      areaLabel: t('floorPlan.sectionArea', { section: t(SECTION_I18N[zone.section]), area: t(AREA_I18N[zone.area]) }),
     });
   };
 
