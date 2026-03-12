@@ -68,31 +68,27 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
             {t('home.rolePrompt')}
           </p>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {/* Welcome Team button */}
             <button
               onClick={() => handleSelectRole('welcome-team')}
-              className={`group w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
+              className={`group rounded-2xl p-4 text-center transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
                 isSelected('welcome-team')
                   ? 'bg-primary text-white shadow-lg ring-2 ring-accent'
                   : 'bg-primary text-white shadow-md hover:bg-primary/90'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                  🙌
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-lg sm:text-xl flex items-center gap-2">
-                    {t('common.welcomeTeam')}
-                    {isSelected('welcome-team') && <span className="text-accent text-sm">✓</span>}
-                  </div>
-                  <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
-                    <div className="overflow-hidden">
-                      <div className="text-white/80 text-xs sm:text-sm mt-1 leading-snug italic">
-                        {t('home.welcomeTeamDesc')}
-                      </div>
-                    </div>
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2">
+                🙌
+              </div>
+              <div className="font-bold text-base sm:text-lg leading-tight">
+                {t('common.welcomeTeam')}
+                {isSelected('welcome-team') && <span className="text-accent text-sm ml-1">✓</span>}
+              </div>
+              <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
+                <div className="overflow-hidden">
+                  <div className="text-white/80 text-[11px] sm:text-xs mt-2 leading-snug italic">
+                    {t('home.welcomeTeamDesc')}
                   </div>
                 </div>
               </div>
@@ -101,27 +97,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
             {/* Congregation button */}
             <button
               onClick={() => handleSelectRole('congregation')}
-              className={`group w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
+              className={`group rounded-2xl p-4 text-center transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/40 ${
                 isSelected('congregation')
                   ? 'bg-white border-2 border-primary text-primary shadow-lg ring-2 ring-accent'
                   : 'bg-white border-2 border-primary text-primary shadow-sm hover:bg-primary/5'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 sm:w-14 sm:h-14 bg-primary/10 rounded-xl flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                  🙏
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-lg sm:text-xl text-primary flex items-center gap-2">
-                    {t('common.imAttending')}
-                    {isSelected('congregation') && <span className="text-accent text-sm">✓</span>}
-                  </div>
-                  <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
-                    <div className="overflow-hidden">
-                      <div className="text-gray-500 text-xs sm:text-sm mt-1 leading-snug italic">
-                        {t('home.attendingDesc')}
-                      </div>
-                    </div>
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2">
+                🙏
+              </div>
+              <div className="font-bold text-base sm:text-lg text-primary leading-tight">
+                {t('common.imAttending')}
+                {isSelected('congregation') && <span className="text-accent text-sm ml-1">✓</span>}
+              </div>
+              <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out">
+                <div className="overflow-hidden">
+                  <div className="text-gray-500 text-[11px] sm:text-xs mt-2 leading-snug italic">
+                    {t('home.attendingDesc')}
                   </div>
                 </div>
               </div>
