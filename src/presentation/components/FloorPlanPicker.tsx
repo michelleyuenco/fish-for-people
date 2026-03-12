@@ -67,12 +67,6 @@ interface FloorPlanPickerProps {
   onChange: (selection: FloorPlanSelection) => void;
 }
 
-const AREA_ICONS: Record<AreaName, string> = {
-  front: '⬆',
-  mid: '—',
-  back: '⬇',
-};
-
 export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChange }) => {
   const { t } = useTranslation();
   const selectedKey = value ? zoneKey(value.section, value.area) : null;
@@ -87,9 +81,9 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* Stage label */}
-      <div className="w-full bg-accent/20 border border-accent/40 text-accent text-xs font-semibold text-center py-1.5 rounded-lg">
+      <div className="w-full bg-accent/20 border border-accent/40 text-accent text-[11px] font-semibold text-center py-1 rounded-lg">
         {t('floorPlan.stage')}
       </div>
 
@@ -98,7 +92,7 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
         {SECTIONS.map((sec) => (
           <div
             key={sec}
-            className="text-center text-[10px] font-bold uppercase tracking-wide text-gray-400"
+            className="text-center text-xs font-bold text-primary"
           >
             {t(SECTION_I18N[sec])}
           </div>
@@ -123,7 +117,7 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
                   type="button"
                   onClick={() => handleSelect(zone)}
                   className={`
-                    relative py-4 rounded-xl text-xs font-semibold
+                    relative py-2.5 rounded-xl text-xs font-semibold
                     flex flex-col items-center justify-center gap-0.5
                     transition-all active:scale-95 border-2
                     ${isSelected
@@ -134,10 +128,9 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
                   aria-label={t('floorPlan.sectionArea', { section: t(SECTION_I18N[sec]), area: t(AREA_I18N[area]) })}
                 >
                   {isSelected && (
-                    <span className="absolute top-1 right-1.5 text-[9px] font-bold opacity-80">✓</span>
+                    <span className="absolute top-0.5 right-1 text-[9px] font-bold opacity-80">✓</span>
                   )}
-                  <span className="text-base leading-none">{AREA_ICONS[area]}</span>
-                  <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                  <span className={`text-[11px] font-semibold ${isSelected ? 'text-white' : 'text-gray-600'}`}>
                     {t(AREA_I18N[area])}
                   </span>
                 </button>
@@ -148,7 +141,7 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
       </div>
 
       {/* Entrance label — bottom-left corner */}
-      <div className="text-left text-gray-400 text-xs font-medium pl-1">
+      <div className="text-left text-gray-400 text-[11px] font-medium pl-1">
         🚪 {t('floorPlan.entrance')}
       </div>
 
