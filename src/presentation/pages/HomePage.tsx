@@ -31,9 +31,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
   const isSelected = (role: UserRole) => lastRole === role;
 
   return (
-    <div className="h-[100dvh] bg-background flex flex-col items-center px-6 overflow-hidden">
-      {/* Centering wrapper — uses padding-bottom to visually shift content upward */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm pb-12">
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center px-6">
+      {/* Centering wrapper */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6">
         {/* Logo + language */}
         <div className="flex-shrink-0 text-center">
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
@@ -61,7 +61,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
 
         {/* Role Selection */}
         <div className="w-full">
-          <p className="text-center text-gray-600 font-semibold text-sm sm:text-base mb-3">
+          <p className="text-center text-gray-500 italic text-xs sm:text-sm mb-3 leading-relaxed px-2">
             {lastRole ? t('home.switchRole') : t('home.whoAreYou')}
           </p>
 
@@ -118,7 +118,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           </div>
 
           {/* Helper text */}
-          <p className="text-xs text-gray-400 mt-3 text-center">
+          <p className="text-sm text-gray-600 font-medium mt-3 text-center">
             {t('home.tapCard')}
           </p>
         </div>
