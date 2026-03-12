@@ -197,7 +197,7 @@ const CongregationView: React.FC<{
     if (form.type) {
       // Small delay to let the DOM render the extra fields
       const timer = setTimeout(() => {
-        extraFieldsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        extraFieldsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }, 100);
       return () => clearTimeout(timer);
     }
