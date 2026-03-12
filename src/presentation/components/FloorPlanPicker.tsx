@@ -81,14 +81,14 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       {/* Stage label */}
-      <div className="w-full bg-accent/20 border border-accent/40 text-accent text-[11px] font-semibold text-center py-1 rounded-lg">
+      <div className="w-full bg-accent/20 border border-accent/40 text-accent text-[11px] font-semibold text-center py-0.5 rounded-lg">
         {t('floorPlan.stage')}
       </div>
 
       {/* Section headers — proportional widths matching seat counts */}
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: '3fr 5fr 3fr' }}>
+      <div className="grid gap-1" style={{ gridTemplateColumns: '3fr 5fr 3fr' }}>
         {SECTIONS.map((sec) => (
           <div
             key={sec}
@@ -100,11 +100,11 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
       </div>
 
       {/* Zone rows: front → mid → back */}
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {AREAS.map((area) => (
           <div
             key={area}
-            className="grid gap-1.5"
+            className="grid gap-1"
             style={{ gridTemplateColumns: '3fr 5fr 3fr' }}
           >
             {SECTIONS.map((sec) => {
@@ -117,7 +117,7 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
                   type="button"
                   onClick={() => handleSelect(zone)}
                   className={`
-                    relative py-2.5 rounded-xl text-xs font-semibold
+                    relative py-2 rounded-xl text-xs font-semibold
                     flex flex-col items-center justify-center gap-0.5
                     transition-all active:scale-95 border-2
                     ${isSelected
@@ -147,7 +147,7 @@ export const FloorPlanPicker: React.FC<FloorPlanPickerProps> = ({ value, onChang
 
       {/* Selection summary */}
       {value && (
-        <div className="flex items-center gap-2 bg-primary/10 rounded-xl px-3 py-2">
+        <div className="flex items-center gap-2 bg-primary/10 rounded-xl px-3 py-1.5">
           <span className="text-primary text-sm">📍</span>
           <span className="text-sm font-semibold text-primary">
             {t('floorPlan.sectionArea', { section: t(SECTION_I18N[value.section]), area: t(AREA_I18N[value.area]) })}

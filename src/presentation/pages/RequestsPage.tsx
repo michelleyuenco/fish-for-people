@@ -192,7 +192,7 @@ const CongregationView: React.FC<{
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       {/* ── Step 1: Location ─────────────────────────────────── */}
       <div className="card space-y-3">
         <div className="flex items-center gap-2.5">
@@ -250,7 +250,7 @@ const CongregationView: React.FC<{
               onClick={() => setForm((f: SubmitFormState) => ({ ...f, type }))}
               aria-label={t(`requestTypes.${type}`)}
               aria-pressed={form.type === type}
-              className={`py-3 px-2 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-1 min-h-[72px] ${
+              className={`py-2.5 px-2 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 min-h-[64px] ${
                 form.type === type
                   ? 'bg-primary text-white shadow-md'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -394,7 +394,7 @@ const CongregationView: React.FC<{
       <button
         type="submit"
         disabled={!canSubmit || submitting}
-        className="btn-primary w-full text-lg py-4"
+        className="btn-primary w-full text-lg py-3.5"
       >
         {submitting ? t('congregation.callingForHelp') : t('congregation.callForHelp')}
       </button>

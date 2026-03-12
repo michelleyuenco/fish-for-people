@@ -88,7 +88,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Skip to main content (visible on keyboard focus only) */}
       <a
         href="#main-content"
@@ -323,8 +323,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       )}
 
       {/* Main content */}
-      <main id="main-content" className="flex-1 overflow-y-auto pb-6" tabIndex={-1}>
-        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto px-4 py-4 space-y-4">
+      <main id="main-content" className="flex-1 overflow-y-auto" tabIndex={-1}>
+        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto px-4 py-4 pb-20 space-y-4">
           {children}
         </div>
       </main>
