@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
@@ -191,35 +191,36 @@ const CongregationView: React.FC<{
     );
   }
 
+  // Auto-scroll to extra fields when a request type is selected
+  const extraFieldsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (form.type) {
+      // Small delay to let the DOM render the extra fields
+      const timer = setTimeout(() => {
+        extraFieldsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [form.type]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {/* ── Step 1: Location ─────────────────────────────────── */}
-      <div className="card space-y-3">
-        <div className="flex items-center gap-2.5">
-          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-            form.location ? 'bg-success text-white' : 'bg-primary text-white'
-          }`}>
-            {form.location ? '✓' : '1'}
-          </span>
-          <h2 className="font-bold text-gray-800 text-base flex-1">{t('congregation.step1Title')}</h2>
-          {form.location && !showLocationPicker && (
-            <button
-              type="button"
-              onClick={() => setShowLocationPicker(true)}
-              className="text-xs text-primary underline font-medium"
-            >
-              {t('congregation.changeLocation')}
-            </button>
-          )}
+      {/* ── Step 1: Location (compact) ────────────────────────── */}
+      {form.location && !showLocationPicker ? (
+        <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2">
+          <span className="text-primary text-sm">📍</span>
+          <span className="text-sm font-semibold text-primary flex-1">{form.location.areaLabel}</span>
+          <button
+            type="button"
+            onClick={() => setShowLocationPicker(true)}
+            className="text-xs text-primary underline font-medium"
+          >
+            {t('congregation.changeLocation')}
+          </button>
         </div>
-
-        {/* Show saved location summary OR the full picker */}
-        {form.location && !showLocationPicker ? (
-          <div className="flex items-center gap-2 bg-primary/10 rounded-xl px-3 py-2">
-            <span className="text-primary text-sm">📍</span>
-            <span className="text-sm font-semibold text-primary">{form.location.areaLabel}</span>
-          </div>
-        ) : (
+      ) : (
+        <div className="card space-y-2">
+          <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step1Title')}</h2>
           <FloorPlanPicker
             value={form.location}
             onChange={(loc) => {
@@ -228,19 +229,12 @@ const CongregationView: React.FC<{
               localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Step 2: What you need ────────────────────────────── */}
       <div className={`card space-y-3 transition-opacity ${form.location ? '' : 'opacity-40 pointer-events-none'}`}>
-        <div className="flex items-center gap-2.5">
-          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-            form.type ? 'bg-success text-white' : 'bg-primary text-white'
-          }`}>
-            {form.type ? '✓' : '2'}
-          </span>
-          <h2 className="font-bold text-gray-800 text-base">{t('congregation.step2Title')}</h2>
-        </div>
+        <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step2Title')}</h2>
 
         <div className="grid grid-cols-3 gap-2">
           {REQUEST_TYPES.map((type) => (
@@ -250,144 +244,147 @@ const CongregationView: React.FC<{
               onClick={() => setForm((f: SubmitFormState) => ({ ...f, type }))}
               aria-label={t(`requestTypes.${type}`)}
               aria-pressed={form.type === type}
-              className={`py-2.5 px-2 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 min-h-[64px] ${
+              className={`py-2 px-1.5 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
                 form.type === type
                   ? 'bg-primary text-white shadow-md'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <span className="text-2xl leading-none" role="img" aria-hidden="true">
+              <span className="text-xl leading-none" role="img" aria-hidden="true">
                 {REQUEST_TYPE_ICONS[type]}
               </span>
-              <span className="leading-tight text-center">{t(`requestTypes.${type}`)}</span>
+              <span className="leading-tight text-center text-[11px]">{t(`requestTypes.${type}`)}</span>
             </button>
           ))}
         </div>
 
-        {/* Quantity stepper — aligned to dominant hand side */}
-        {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              {t('congregation.howMany')}
-            </label>
-            <div className={`flex items-center gap-3 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
-              {!isLeftHanded && (
-                <button
-                  type="button"
-                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                  className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                  aria-label="+"
-                >+</button>
-              )}
-              <span className="text-2xl font-bold text-primary w-10 text-center">{form.quantity}</span>
-              <button
-                type="button"
-                onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
-                disabled={form.quantity <= 1}
-                className="w-11 h-11 rounded-xl bg-gray-100 text-gray-700 text-xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
-                aria-label="−"
-              >−</button>
-              {isLeftHanded && (
-                <button
-                  type="button"
-                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                  className="w-14 h-14 rounded-xl bg-primary text-white text-2xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                  aria-label="+"
-                >+</button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Contact info (for Voiceover Device) */}
-        {isVoiceover && (
-          <div className="space-y-3 bg-teal-50 border border-teal-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-teal-700">
-              {t('congregation.voiceoverContactNote')}
-            </p>
+        {/* Extra fields — scroll target */}
+        <div ref={extraFieldsRef}>
+          {/* Quantity stepper — aligned to dominant hand side */}
+          {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                {t('congregation.contactName')}
+                {t('congregation.howMany')}
               </label>
-              <input
-                type="text"
-                value={form.contactName}
-                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
-                placeholder={t('congregation.contactNamePlaceholder')}
-                className="input-field"
-                autoComplete="name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                {t('congregation.contactPhone')}
-              </label>
-              <input
-                type="tel"
-                inputMode="numeric"
-                value={form.contactPhone}
-                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
-                placeholder={t('congregation.contactPhonePlaceholder')}
-                className={`input-field ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
-                autoComplete="tel"
-              />
-              {form.contactPhone && !phoneValid && (
-                <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Prayer item (for Prayer requests) */}
-        {form.type === 'Prayer' && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              {t('congregation.prayerItem')}
-            </label>
-            <textarea
-              value={form.note}
-              onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-              placeholder={t('congregation.prayerItemPlaceholder')}
-              rows={3}
-              className="input-field resize-none"
-            />
-          </div>
-        )}
-
-        {/* Note (for "Other") */}
-        {form.type === 'Other' && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              {t('congregation.pleaseDescribe')}
-            </label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {PRESET_KEYS.map((key) => {
-                const label = t(key);
-                return (
+              <div className={`flex items-center gap-2 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
+                {!isLeftHanded && (
                   <button
-                    key={key}
                     type="button"
-                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                      form.note === label
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                    className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                    aria-label="+"
+                  >+</button>
+                )}
+                <span className="text-xl font-bold text-primary w-8 text-center">{form.quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                  disabled={form.quantity <= 1}
+                  className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 text-lg font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
+                  aria-label="−"
+                >−</button>
+                {isLeftHanded && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                    className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                    aria-label="+"
+                  >+</button>
+                )}
+              </div>
             </div>
-            <textarea
-              value={form.note}
-              onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-              placeholder={t('congregation.orDescribe')}
-              rows={2}
-              className="input-field resize-none"
-            />
-          </div>
-        )}
+          )}
+
+          {/* Contact info (for Voiceover Device) */}
+          {isVoiceover && (
+            <div className="space-y-2 bg-teal-50 border border-teal-200 rounded-xl p-3 mt-2">
+              <p className="text-xs font-semibold text-teal-700">
+                {t('congregation.voiceoverContactNote')}
+              </p>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-0.5">
+                  {t('congregation.contactName')}
+                </label>
+                <input
+                  type="text"
+                  value={form.contactName}
+                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
+                  placeholder={t('congregation.contactNamePlaceholder')}
+                  className="input-field py-2 text-sm"
+                  autoComplete="name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-0.5">
+                  {t('congregation.contactPhone')}
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={form.contactPhone}
+                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
+                  placeholder={t('congregation.contactPhonePlaceholder')}
+                  className={`input-field py-2 text-sm ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                  autoComplete="tel"
+                />
+                {form.contactPhone && !phoneValid && (
+                  <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Prayer item (for Prayer requests) */}
+          {form.type === 'Prayer' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                {t('congregation.prayerItem')}
+              </label>
+              <textarea
+                value={form.note}
+                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+                placeholder={t('congregation.prayerItemPlaceholder')}
+                rows={2}
+                className="input-field resize-none text-sm"
+              />
+            </div>
+          )}
+
+          {/* Note (for "Other") */}
+          {form.type === 'Other' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                {t('congregation.pleaseDescribe')}
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRESET_KEYS.map((key) => {
+                  const label = t(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                        form.note === label
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <textarea
+                value={form.note}
+                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+                placeholder={t('congregation.orDescribe')}
+                rows={2}
+                className="input-field resize-none text-sm"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Spacer so sticky button doesn't overlap content */}
