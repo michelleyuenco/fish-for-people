@@ -82,6 +82,7 @@ const CongregationView: React.FC<{
   const [lastSubmission, setLastSubmission] = useState<LastSubmission | null>(null);
   const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
   const [showLocationPicker, setShowLocationPicker] = useState(!savedLocation);
+  const [showTypePicker, setShowTypePicker] = useState(true);
 
   const isVoiceover = form.type === 'Voiceover Device';
   const phoneValid = !isVoiceover || isValidHKPhone(form.contactPhone);
@@ -191,17 +192,16 @@ const CongregationView: React.FC<{
     );
   }
 
-  // Auto-scroll to extra fields when a request type is selected
+  // Auto-scroll to follow-up fields when type is selected and grid collapses
   const extraFieldsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (form.type) {
-      // Small delay to let the DOM render the extra fields
+    if (form.type && !showTypePicker) {
       const timer = setTimeout(() => {
         extraFieldsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [form.type]);
+  }, [form.type, showTypePicker]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -233,158 +233,179 @@ const CongregationView: React.FC<{
       )}
 
       {/* ── Step 2: What you need ────────────────────────────── */}
-      <div className={`card space-y-3 transition-opacity ${form.location ? '' : 'opacity-40 pointer-events-none'}`}>
-        <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step2Title')}</h2>
-
-        <div className="grid grid-cols-3 gap-2">
-          {REQUEST_TYPES.map((type) => (
+      <div className={`transition-opacity ${form.location ? '' : 'opacity-40 pointer-events-none'}`}>
+        {/* Selected type chip OR full grid */}
+        {form.type && !showTypePicker ? (
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2 mb-3">
+            <span className="text-lg" role="img" aria-hidden="true">{REQUEST_TYPE_ICONS[form.type as RequestType]}</span>
+            <span className="text-sm font-semibold text-primary flex-1">{t(`requestTypes.${form.type}`)}</span>
             <button
-              key={type}
               type="button"
-              onClick={() => setForm((f: SubmitFormState) => ({ ...f, type }))}
-              aria-label={t(`requestTypes.${type}`)}
-              aria-pressed={form.type === type}
-              className={`py-2 px-1.5 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
-                form.type === type
-                  ? 'bg-primary text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              onClick={() => setShowTypePicker(true)}
+              className="text-xs text-primary underline font-medium"
             >
-              <span className="text-xl leading-none" role="img" aria-hidden="true">
-                {REQUEST_TYPE_ICONS[type]}
-              </span>
-              <span className="leading-tight text-center text-[11px]">{t(`requestTypes.${type}`)}</span>
+              {t('congregation.changeLocation')}
             </button>
-          ))}
-        </div>
-
-        {/* Extra fields — scroll target */}
-        <div ref={extraFieldsRef}>
-          {/* Quantity stepper — aligned to dominant hand side */}
-          {form.type && QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                {t('congregation.howMany')}
-              </label>
-              <div className={`flex items-center gap-2 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
-                {!isLeftHanded && (
-                  <button
-                    type="button"
-                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                    className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                    aria-label="+"
-                  >+</button>
-                )}
-                <span className="text-xl font-bold text-primary w-8 text-center">{form.quantity}</span>
+          </div>
+        ) : (
+          <div className="card space-y-3 mb-3">
+            <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step2Title')}</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {REQUEST_TYPES.map((type) => (
                 <button
+                  key={type}
                   type="button"
-                  onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
-                  disabled={form.quantity <= 1}
-                  className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 text-lg font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
-                  aria-label="−"
-                >−</button>
-                {isLeftHanded && (
+                  onClick={() => {
+                    setForm((f: SubmitFormState) => ({ ...f, type }));
+                    setShowTypePicker(false);
+                  }}
+                  aria-label={t(`requestTypes.${type}`)}
+                  aria-pressed={form.type === type}
+                  className={`py-2 px-1.5 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
+                    form.type === type
+                      ? 'bg-primary text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className="text-xl leading-none" role="img" aria-hidden="true">
+                    {REQUEST_TYPE_ICONS[type]}
+                  </span>
+                  <span className="leading-tight text-center text-[11px]">{t(`requestTypes.${type}`)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Follow-up fields — always visible when type is selected */}
+        {form.type && !showTypePicker && (
+          <div className="card space-y-3" ref={extraFieldsRef}>
+            {/* Quantity stepper — aligned to dominant hand side */}
+            {QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  {t('congregation.howMany')}
+                </label>
+                <div className={`flex items-center gap-2 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
+                  {!isLeftHanded && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                      className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                      aria-label="+"
+                    >+</button>
+                  )}
+                  <span className="text-xl font-bold text-primary w-8 text-center">{form.quantity}</span>
                   <button
                     type="button"
-                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                    className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                    aria-label="+"
-                  >+</button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Contact info (for Voiceover Device) */}
-          {isVoiceover && (
-            <div className="space-y-2 bg-teal-50 border border-teal-200 rounded-xl p-3 mt-2">
-              <p className="text-xs font-semibold text-teal-700">
-                {t('congregation.voiceoverContactNote')}
-              </p>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-0.5">
-                  {t('congregation.contactName')}
-                </label>
-                <input
-                  type="text"
-                  value={form.contactName}
-                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
-                  placeholder={t('congregation.contactNamePlaceholder')}
-                  className="input-field py-2 text-sm"
-                  autoComplete="name"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-0.5">
-                  {t('congregation.contactPhone')}
-                </label>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.contactPhone}
-                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
-                  placeholder={t('congregation.contactPhonePlaceholder')}
-                  className={`input-field py-2 text-sm ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
-                  autoComplete="tel"
-                />
-                {form.contactPhone && !phoneValid && (
-                  <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Prayer item (for Prayer requests) */}
-          {form.type === 'Prayer' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                {t('congregation.prayerItem')}
-              </label>
-              <textarea
-                value={form.note}
-                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-                placeholder={t('congregation.prayerItemPlaceholder')}
-                rows={2}
-                className="input-field resize-none text-sm"
-              />
-            </div>
-          )}
-
-          {/* Note (for "Other") */}
-          {form.type === 'Other' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                {t('congregation.pleaseDescribe')}
-              </label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {PRESET_KEYS.map((key) => {
-                  const label = t(key);
-                  return (
+                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                    disabled={form.quantity <= 1}
+                    className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 text-lg font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
+                    aria-label="−"
+                  >−</button>
+                  {isLeftHanded && (
                     <button
-                      key={key}
                       type="button"
-                      onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-                        form.note === label
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+                      onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                      className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
+                      aria-label="+"
+                    >+</button>
+                  )}
+                </div>
               </div>
-              <textarea
-                value={form.note}
-                onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-                placeholder={t('congregation.orDescribe')}
-                rows={2}
-                className="input-field resize-none text-sm"
-              />
-            </div>
-          )}
-        </div>
+            )}
+
+            {/* Contact info (for Voiceover Device) */}
+            {isVoiceover && (
+              <div className="space-y-2 bg-teal-50 border border-teal-200 rounded-xl p-3">
+                <p className="text-xs font-semibold text-teal-700">
+                  {t('congregation.voiceoverContactNote')}
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-0.5">
+                    {t('congregation.contactName')}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.contactName}
+                    onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
+                    placeholder={t('congregation.contactNamePlaceholder')}
+                    className="input-field py-2 text-sm"
+                    autoComplete="name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-0.5">
+                    {t('congregation.contactPhone')}
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={form.contactPhone}
+                    onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
+                    placeholder={t('congregation.contactPhonePlaceholder')}
+                    className={`input-field py-2 text-sm ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                    autoComplete="tel"
+                  />
+                  {form.contactPhone && !phoneValid && (
+                    <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Prayer item (for Prayer requests) */}
+            {form.type === 'Prayer' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  {t('congregation.prayerItem')}
+                </label>
+                <textarea
+                  value={form.note}
+                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+                  placeholder={t('congregation.prayerItemPlaceholder')}
+                  rows={2}
+                  className="input-field resize-none text-sm"
+                />
+              </div>
+            )}
+
+            {/* Note (for "Other") */}
+            {form.type === 'Other' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  {t('congregation.pleaseDescribe')}
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {PRESET_KEYS.map((key) => {
+                    const label = t(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                          form.note === label
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <textarea
+                  value={form.note}
+                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+                  placeholder={t('congregation.orDescribe')}
+                  rows={2}
+                  className="input-field resize-none text-sm"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Spacer so sticky button doesn't overlap content */}
