@@ -62,18 +62,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
           ))}
         </div>
 
-        {/* Bible verse */}
-        <div className="text-center px-2 mb-4">
-          <p className="text-xs sm:text-sm text-gray-500 italic leading-relaxed">
-            {t('home.bibleVerse')}
-          </p>
-          <p className="text-[11px] text-gray-400 mt-1">
-            {t('home.bibleRef')}
-          </p>
-        </div>
-
         {/* Role Selection */}
         <div className="w-full">
+          <p className="text-center text-gray-600 font-medium text-sm sm:text-base mb-3">
+            {t('home.rolePrompt')}
+          </p>
+
           <div className="space-y-3">
             {/* Welcome Team button */}
             <button
@@ -133,6 +127,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
               </div>
             </button>
           </div>
+        </div>
+
+        {/* Bible verse */}
+        <div className="mt-6 text-center px-2">
+          <p className="text-xs sm:text-sm text-gray-400 italic leading-relaxed">
+            {t('home.bibleVerse')}
+          </p>
+          <p className="text-[11px] text-gray-400 mt-1">
+            {t('home.bibleRef')}
+          </p>
         </div>
       </div>
 
