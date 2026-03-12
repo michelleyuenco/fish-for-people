@@ -36,9 +36,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6">
         {/* Logo + language */}
         <div className="flex-shrink-0 text-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
+          <button
+            onClick={() => setShowIchthys(true)}
+            className="w-16 h-16 sm:w-20 sm:h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
+          >
             <span className="text-3xl sm:text-4xl">🐟</span>
-          </div>
+          </button>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">{t('common.appName')}</h1>
         </div>
 
@@ -135,14 +138,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 pb-3 text-center flex flex-col items-center gap-1.5">
-        <button
-          onClick={() => setShowIchthys(true)}
-          className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary transition-colors"
-        >
-          <span>🐟</span>
-          <span className="underline underline-offset-2">{t('home.whyTheFish')}</span>
-        </button>
+      <div className="flex-shrink-0 pb-3 text-center">
         <a
           href={GITHUB_URL}
           target="_blank"
