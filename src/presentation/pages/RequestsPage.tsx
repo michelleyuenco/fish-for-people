@@ -390,14 +390,21 @@ const CongregationView: React.FC<{
         )}
       </div>
 
-      {/* ── Submit ────────────────────────────────────────────── */}
-      <button
-        type="submit"
-        disabled={!canSubmit || submitting}
-        className="btn-primary w-full text-lg py-3.5"
-      >
-        {submitting ? t('congregation.callingForHelp') : t('congregation.callForHelp')}
-      </button>
+      {/* Spacer so sticky button doesn't overlap content */}
+      <div className="h-16" />
+
+      {/* ── Submit — sticky at bottom ──────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm px-4 pb-safe border-t border-gray-100">
+        <div className="max-w-lg mx-auto py-3">
+          <button
+            type="submit"
+            disabled={!canSubmit || submitting}
+            className="btn-primary w-full text-lg py-3.5"
+          >
+            {submitting ? t('congregation.callingForHelp') : t('congregation.callForHelp')}
+          </button>
+        </div>
+      </div>
     </form>
   );
 };
