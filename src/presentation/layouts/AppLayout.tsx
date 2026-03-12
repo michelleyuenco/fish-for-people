@@ -78,7 +78,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   }, [menuOpen]);
 
   const roleLabel = role === 'welcome-team'
-    ? `🎖️ ${t('common.welcomeTeam')}`
+    ? `🙌 ${t('common.welcomeTeam')}`
     : `🙏 ${t('common.attending')}`;
 
   const tabs: { id: TabName; label: string; icon: string }[] = [
@@ -145,6 +145,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           )}
 
           <div className="flex items-center gap-2">
+            {/* Mobile pending request badge (below md, welcome team only) */}
+            {role === 'welcome-team' && pendingRequestCount > 0 && (
+              <button
+                onClick={() => { onTabChange('requests'); }}
+                className="md:hidden flex items-center gap-1.5 bg-danger/90 hover:bg-danger active:bg-danger/80 text-white px-3 py-1.5 rounded-full transition-all animate-pulse"
+                aria-label={t('nav.pending', { count: pendingRequestCount })}
+              >
+                <span className="text-sm">🙋</span>
+                <span className="text-sm font-bold">{pendingRequestCount}</span>
+              </button>
+            )}
+
             {/* Desktop language buttons (md+) */}
             <div className="hidden md:flex items-center gap-1">
               {LANGUAGES.map((lang) => (
