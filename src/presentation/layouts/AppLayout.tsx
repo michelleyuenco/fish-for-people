@@ -328,6 +328,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             </div>
           </div>
         </div>
+        {/* Page title bar — desktop only */}
+        <div className="hidden md:block pb-3">
+          <h1 className="text-sm text-white/70">{title}</h1>
+        </div>
       </header>
 
       {/* Offline indicator */}

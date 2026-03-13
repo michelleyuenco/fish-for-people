@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
 import { REQUEST_TYPES, QUANTIFIABLE_TYPES } from '../../domain/models/Request';
@@ -119,23 +120,50 @@ const CongregationView: React.FC<{
     const isResolved = liveRequest?.status === 'resolved';
 
     return (
-      <div className="card space-y-4">
+      <motion.div
+        className="card space-y-4"
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      >
         <div className="text-center py-4">
-          <div className="text-5xl mb-3">{isResolved ? '✅' : REQUEST_TYPE_ICONS[lastSubmission.type]}</div>
-          <h2 className="text-xl font-bold text-primary">
+          <motion.div
+            className="text-5xl mb-3"
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.15 }}
+          >
+            {isResolved ? '✅' : REQUEST_TYPE_ICONS[lastSubmission.type]}
+          </motion.div>
+          <motion.h2
+            className="text-xl font-bold text-primary"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.3 }}
+          >
             {isResolved ? t('congregation.requestCompleted') : t('congregation.requestSent')}
-          </h2>
-          <p className="text-gray-500 text-sm mt-1">
+          </motion.h2>
+          <motion.p
+            className="text-gray-500 text-sm mt-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.3 }}
+          >
             {isResolved ? t('congregation.teamAttended') : t('congregation.teamComingSoon')}
-          </p>
+          </motion.p>
         </div>
 
         {/* Live status indicator */}
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
-          isResolved
-            ? 'bg-success/10 border-success/30'
-            : 'bg-primary/5 border-primary/20'
-        }`}>
+        <motion.div
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+            isResolved
+              ? 'bg-success/10 border-success/30'
+              : 'bg-primary/5 border-primary/20'
+          }`}
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3, duration: 0.35, ease: 'easeOut' }}
+        >
           <span className={`text-base ${isResolved ? '' : 'animate-pulse'}`}>
             {isResolved ? '✅' : '⏳'}
           </span>
@@ -147,10 +175,15 @@ const CongregationView: React.FC<{
               <p className="text-xs text-gray-400">{t('congregation.stayInSeat')}</p>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Receipt */}
-        <div className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-200">
+        <motion.div
+          className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-200"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.35 }}
+        >
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{t('congregation.yourRequest')}</p>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">{t('congregation.what')}</span>
@@ -181,14 +214,18 @@ const CongregationView: React.FC<{
               <span className="font-semibold text-gray-800 text-right max-w-[60%]">{lastSubmission.note}</span>
             </div>
           )}
-        </div>
-        <button
+        </motion.div>
+        <motion.button
           onClick={() => { setSubmitted(false); setSubmittedRequestId(null); }}
           className="btn-primary w-full"
+          whileTap={{ scale: 0.96 }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.3 }}
         >
           {t('congregation.submitAnother')}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     );
   }
 
