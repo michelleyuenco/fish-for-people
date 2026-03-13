@@ -9,10 +9,8 @@ import { HeadcountPage } from './presentation/pages/HeadcountPage';
 import { FloorPlanPage } from './presentation/pages/FloorPlanPage';
 import { useService } from './application/hooks/useService';
 import { useRequests } from './application/hooks/useRequests';
-import type { TabName } from './presentation/components/NavBar';
-import type { UserRole } from './domain/models/Service';
-
-const ROLE_STORAGE_KEY = 'fish-for-people:role';
+import type { UserRole, TabName } from './domain/models/Service';
+import { STORAGE_KEYS } from './domain/constants/storageKeys';
 
 // Map route paths to tab names
 const pathToTab: Record<string, TabName> = {
@@ -118,7 +116,7 @@ export default function App() {
 
   // Load role from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole | null;
+    const saved = localStorage.getItem(STORAGE_KEYS.ROLE) as UserRole | null;
     if (saved === 'welcome-team' || saved === 'congregation') {
       setRole(saved);
     }
@@ -127,13 +125,13 @@ export default function App() {
 
   const handleSelectRole = (selectedRole: UserRole) => {
     setRole(selectedRole);
-    localStorage.setItem(ROLE_STORAGE_KEY, selectedRole);
+    localStorage.setItem(STORAGE_KEYS.ROLE, selectedRole);
     navigate(selectedRole === 'congregation' ? '/requests' : '/seats');
   };
 
   const handleChangeRole = () => {
     setRole(null);
-    localStorage.removeItem(ROLE_STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.ROLE);
     navigate('/');
   };
 

@@ -5,6 +5,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import en from './locales/en.json';
 import zhTW from './locales/zh-TW.json';
 import zhCN from './locales/zh-CN.json';
+import { STORAGE_KEYS } from '../domain/constants/storageKeys';
 
 export const LANGUAGES = [
   { code: 'en', label: 'EN' },
@@ -29,7 +30,7 @@ i18n
     },
     detection: {
       order: ['localStorage', 'navigator'],
-      lookupLocalStorage: 'fish-for-people:lang',
+      lookupLocalStorage: STORAGE_KEYS.LANGUAGE,
       caches: ['localStorage'],
     },
   });

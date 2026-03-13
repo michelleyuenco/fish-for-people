@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type TabName } from '../components/NavBar';
 import { LANGUAGES } from '../../i18n';
-import type { UserRole } from '../../domain/models/Service';
-
-const LARGE_TEXT_KEY = 'fish-for-people:large-text';
-const HANDEDNESS_KEY = 'fish-for-people:handedness';
+import type { UserRole, TabName } from '../../domain/models/Service';
+import { STORAGE_KEYS } from '../../domain/constants/storageKeys';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -30,10 +27,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [largeText, setLargeText] = useState(() => {
-    return localStorage.getItem(LARGE_TEXT_KEY) === 'true';
+    return localStorage.getItem(STORAGE_KEYS.LARGE_TEXT) === 'true';
   });
   const [leftHanded, setLeftHanded] = useState(() => {
-    return localStorage.getItem(HANDEDNESS_KEY) === 'left';
+    return localStorage.getItem(STORAGE_KEYS.HANDEDNESS) === 'left';
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -46,11 +43,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     } else {
       document.documentElement.classList.remove('large-text');
     }
-    localStorage.setItem(LARGE_TEXT_KEY, String(largeText));
+    localStorage.setItem(STORAGE_KEYS.LARGE_TEXT, String(largeText));
   }, [largeText]);
 
   useEffect(() => {
-    localStorage.setItem(HANDEDNESS_KEY, leftHanded ? 'left' : 'right');
+    localStorage.setItem(STORAGE_KEYS.HANDEDNESS, leftHanded ? 'left' : 'right');
     window.dispatchEvent(new Event('handedness-change'));
   }, [leftHanded]);
 

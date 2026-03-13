@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useLayoutEffect, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { FloorPlanSeatMap } from '../components/FloorPlanSeatMap';
 import { useSeats } from '../../application/hooks/useSeats';
@@ -253,7 +253,7 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
               <div className="space-y-2 text-xs text-gray-600 leading-snug">
                 <div className="flex items-start gap-2">
                   <span className="w-3 h-3 rounded-sm bg-success flex-shrink-0 mt-0.5" />
-                  <span dangerouslySetInnerHTML={{ __html: t('floorPlanPage.suggestedExplain') }} />
+                  <span><Trans i18nKey="floorPlanPage.suggestedExplain" components={{ 1: <strong /> }} /></span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-base leading-none mt-[-2px]">♿</span>

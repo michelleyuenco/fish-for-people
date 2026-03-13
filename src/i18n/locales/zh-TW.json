@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "Fish for People",
-    "welcomeTeam": "招待團隊",
+    "welcomeTeam": "Welcome Team",
     "attending": "會眾",
     "imAttending": "我是會眾",
     "switchRole": "切換身份",
@@ -137,6 +137,7 @@
     "presetMedical": "醫療協助",
     "presetLostItem": "遺失物品",
     "voiceoverContactNote": "我們需要您的聯絡方式，以便聚會結束後跟進耳機歸還。",
+    "contactPrivacy": "您的聯絡資料僅用於耳機歸還，聚會結束後將會刪除。",
     "contactName": "姓名",
     "contactNamePlaceholder": "您的姓名",
     "contactPhone": "電話號碼",
@@ -190,6 +191,13 @@
     "copyReport": "複製報告以分享",
     "copied": "已複製！可貼到 WhatsApp 或 Email"
   },
+  "zones": {
+    "left": "左區",
+    "middle": "中區",
+    "right": "右區",
+    "production": "副控室",
+    "outside": "室外"
+  },
   "headcount": {
     "enterYourCount": "輸入人數",
     "reviewYourCount": "確認統計數據",
@@ -206,8 +214,8 @@
     "capacityMode": "空位模式",
     "countEmptySeats": "計算空位數量",
     "howCapacityWorks": "空位模式說明：",
-    "capacityInstruction": "每發現一個空位就按 <strong>+</strong>。系統會用座位總數減去空位數，自動算出實到人數。",
-    "capacityFormula": "公式：<em>座位總數 − 空位 = 人數</em>",
+    "capacityInstruction": "每發現一個空位就按 <1>+</1>。系統會用座位總數減去空位數，自動算出實到人數。",
+    "capacityFormula": "公式：<1>座位總數 − 空位 = 人數</1>",
     "prodOutsideDirect": "副控室與室外：直接計算人數",
     "calculatedFromCapacity": "依座位容量換算",
     "reviewCount": "確認統計 →",
@@ -216,6 +224,8 @@
     "shareCount": "分享統計",
     "copied": "已複製！",
     "editBack": "← 返回修改",
+    "undo": "復原",
+    "redo": "重做",
     "net": "空位",
     "recentServices": "近期聚會紀錄",
     "services": "聚會數",
@@ -239,7 +249,7 @@
     "collapseSidebar": "收合側欄",
     "expandSidebar": "展開側欄",
     "seatingGuide": "入座指引",
-    "suggestedExplain": "<strong>較亮的座位</strong>為建議入座位置 — 坐在這些位置可保持走道暢通，方便遲到的弟兄姊妹入座。",
+    "suggestedExplain": "<1>較亮的座位</1>為建議入座位置 — 坐在這些位置可保持走道暢通，方便遲到的弟兄姊妹入座。",
     "accessibilityNote": "需要走道旁的座位嗎？沒問題 — 請選擇最方便的位置就座。",
     "fillWallToAisle": "由牆邊向走道填滿",
     "fillCenterOutward": "由中間向兩側填滿",

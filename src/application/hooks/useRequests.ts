@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ServiceRequest, RequestType } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
 import { getRequestService } from '../../infrastructure/services/ServiceProvider';
@@ -16,6 +16,12 @@ export function useRequests(serviceId: string) {
   const [resolving, setResolving] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Refs for guard checks inside stable callbacks
+  const resolvingRef = useRef(resolving);
+  resolvingRef.current = resolving;
+  const deletingRef = useRef(deleting);
+  deletingRef.current = deleting;
 
   useEffect(() => {
     if (!serviceId) return;
@@ -63,7 +69,7 @@ export function useRequests(serviceId: string) {
 
   const handleResolveRequest = useCallback(
     async (requestId: string): Promise<void> => {
-      if (resolving.has(requestId)) return;
+      if (resolvingRef.current.has(requestId)) return;
       setResolving((prev) => new Set(prev).add(requestId));
       try {
         await resolveRequest(serviceId, requestId);
@@ -77,12 +83,12 @@ export function useRequests(serviceId: string) {
         });
       }
     },
-    [serviceId, resolving]
+    [serviceId]
   );
 
   const handleDeleteAll = useCallback(
     async (): Promise<void> => {
-      if (deleting) return;
+      if (deletingRef.current) return;
       setDeleting(true);
       try {
         const service = getRequestService();
@@ -95,11 +101,17 @@ export function useRequests(serviceId: string) {
         setDeleting(false);
       }
     },
-    [serviceId, deleting]
+    [serviceId]
   );
 
-  const pendingRequests = sortRequestsByTime(getPendingRequests(requests));
-  const resolvedRequests = sortRequestsByTime(getResolvedRequests(requests)).reverse();
+  const pendingRequests = useMemo(
+    () => sortRequestsByTime(getPendingRequests(requests)),
+    [requests]
+  );
+  const resolvedRequests = useMemo(
+    () => sortRequestsByTime(getResolvedRequests(requests)).reverse(),
+    [requests]
+  );
   const pendingCount = pendingRequests.length;
 
   return {

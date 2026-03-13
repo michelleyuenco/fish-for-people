@@ -38,31 +38,48 @@ export function computeSeatSummaries(seats: Seat[]): SeatSummary[] {
   return Array.from(summaryMap.values());
 }
 
-export function getAvailableCount(seats: Seat[]): number {
-  const occupiedCount = seats.filter((s) => s.occupied).length;
-  const reservedCount = seats.filter((s) => !s.occupied && s.reservedFor !== 'none').length;
-  return TOTAL_SEATS - occupiedCount - reservedCount;
+/** Aggregate seat counts in a single pass over the seats array. */
+export interface SeatCounts {
+  occupied: number;
+  reserved: number;
+  sectionAvailability: Record<SectionName, number>;
 }
 
-export function getReservedCount(seats: Seat[]): number {
-  return seats.filter((s) => s.reservedFor !== 'none' && !s.occupied).length;
-}
-
-export function getOccupiedCount(seats: Seat[]): number {
-  return seats.filter((s) => s.occupied).length;
-}
-
-export function getSectionAvailability(seats: Seat[]): Record<SectionName, number> {
-  // Start from per-section totals and subtract occupied seats.
-  const result: Record<SectionName, number> = {
+export function aggregateSeatCounts(seats: Seat[]): SeatCounts {
+  let occupied = 0;
+  let reserved = 0;
+  const sectionAvailability: Record<SectionName, number> = {
     left: SECTION_TOTALS.left,
     middle: SECTION_TOTALS.middle,
     right: SECTION_TOTALS.right,
   };
+
   for (const seat of seats) {
-    if (seat.occupied || (!seat.occupied && seat.reservedFor !== 'none')) {
-      result[seat.section] -= 1;
+    if (seat.occupied) {
+      occupied += 1;
+      sectionAvailability[seat.section] -= 1;
+    } else if (seat.reservedFor !== 'none') {
+      reserved += 1;
+      sectionAvailability[seat.section] -= 1;
     }
   }
-  return result;
+
+  return { occupied, reserved, sectionAvailability };
+}
+
+export function getAvailableCount(seats: Seat[]): number {
+  const { occupied, reserved } = aggregateSeatCounts(seats);
+  return TOTAL_SEATS - occupied - reserved;
+}
+
+export function getReservedCount(seats: Seat[]): number {
+  return aggregateSeatCounts(seats).reserved;
+}
+
+export function getOccupiedCount(seats: Seat[]): number {
+  return aggregateSeatCounts(seats).occupied;
+}
+
+export function getSectionAvailability(seats: Seat[]): Record<SectionName, number> {
+  return aggregateSeatCounts(seats).sectionAvailability;
 }

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useHeadcount } from '../../application/hooks/useHeadcount';
 import { CountInput } from '../components/CountInput';
-import { ZONE_NAMES, type ZoneCounts } from '../../domain/models/Headcount';
+import { ZONE_KEYS, type ZoneCounts } from '../../domain/models/Headcount';
 import { calculateTotal } from '../../domain/rules/headcountRules';
 import { SECTION_TOTALS } from '../../domain/constants/seating';
 import { useHandedness } from '../../application/hooks/useHandedness';
+import { STORAGE_KEYS } from '../../domain/constants/storageKeys';
 
 interface HeadcountPageProps {
   serviceId: string;
@@ -137,21 +138,22 @@ const CapacityBlock: React.FC<{
   );
 };
 
+interface HistorySnapshot {
+  counts: ZoneCounts;
+  adj: CapacityAdjustments;
+}
+
 const CounterForm: React.FC = () => {
   const { t } = useTranslation();
-  const COUNTS_KEY = 'fish-for-people:headcount-counts';
-  const ADJ_KEY = 'fish-for-people:headcount-adj';
-  const MODE_KEY = 'fish-for-people:headcount-mode';
-
   const [counts, setCounts] = useState<ZoneCounts>(() => {
     try {
-      const saved = localStorage.getItem(COUNTS_KEY);
+      const saved = localStorage.getItem(STORAGE_KEYS.HEADCOUNT_COUNTS);
       return saved ? JSON.parse(saved) : { ...EMPTY_COUNTS };
     } catch { return { ...EMPTY_COUNTS }; }
   });
   const [adj, setAdj] = useState<CapacityAdjustments>(() => {
     try {
-      const saved = localStorage.getItem(ADJ_KEY);
+      const saved = localStorage.getItem(STORAGE_KEYS.HEADCOUNT_ADJ);
       return saved ? JSON.parse(saved) : { ...EMPTY_ADJUSTMENTS };
     } catch { return { ...EMPTY_ADJUSTMENTS }; }
   });
@@ -159,17 +161,69 @@ const CounterForm: React.FC = () => {
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<'people' | 'capacity'>(() => {
-    const saved = localStorage.getItem(MODE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEYS.HEADCOUNT_MODE);
     return saved === 'capacity' ? 'capacity' : 'people';
   });
   const [showHelp, setShowHelp] = useState(false);
 
+  // ── Undo / Redo history ──
+  const [history, setHistory] = useState<HistorySnapshot[]>(() => {
+    const initCounts = (() => { try { const s = localStorage.getItem(STORAGE_KEYS.HEADCOUNT_COUNTS); return s ? JSON.parse(s) : { ...EMPTY_COUNTS }; } catch { return { ...EMPTY_COUNTS }; } })();
+    const initAdj = (() => { try { const s = localStorage.getItem(STORAGE_KEYS.HEADCOUNT_ADJ); return s ? JSON.parse(s) : { ...EMPTY_ADJUSTMENTS }; } catch { return { ...EMPTY_ADJUSTMENTS }; } })();
+    return [{ counts: initCounts, adj: initAdj }];
+  });
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  const pushHistory = useCallback((newCounts: ZoneCounts, newAdj: CapacityAdjustments) => {
+    setHistory((prev) => {
+      const truncated = prev.slice(0, historyIndex + 1);
+      return [...truncated, { counts: newCounts, adj: newAdj }];
+    });
+    setHistoryIndex((i) => i + 1);
+  }, [historyIndex]);
+
+  const updateCounts = useCallback((updater: (prev: ZoneCounts) => ZoneCounts) => {
+    setCounts((prev) => {
+      const next = updater(prev);
+      pushHistory(next, adj);
+      return next;
+    });
+  }, [adj, pushHistory]);
+
+  const updateAdj = useCallback((updater: (prev: CapacityAdjustments) => CapacityAdjustments) => {
+    setAdj((prev) => {
+      const next = updater(prev);
+      pushHistory(counts, next);
+      return next;
+    });
+  }, [counts, pushHistory]);
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
+
+  const handleUndo = useCallback(() => {
+    if (!canUndo) return;
+    const prev = history[historyIndex - 1];
+    setHistoryIndex((i) => i - 1);
+    setCounts(prev.counts);
+    setAdj(prev.adj);
+  }, [canUndo, history, historyIndex]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo) return;
+    const next = history[historyIndex + 1];
+    setHistoryIndex((i) => i + 1);
+    setCounts(next.counts);
+    setAdj(next.adj);
+  }, [canRedo, history, historyIndex]);
+
   // Persist counts, adj, and mode to localStorage
-  useEffect(() => { localStorage.setItem(COUNTS_KEY, JSON.stringify(counts)); }, [counts]);
-  useEffect(() => { localStorage.setItem(ADJ_KEY, JSON.stringify(adj)); }, [adj]);
-  useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.HEADCOUNT_COUNTS, JSON.stringify(counts)); }, [counts]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.HEADCOUNT_ADJ, JSON.stringify(adj)); }, [adj]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.HEADCOUNT_MODE, mode); }, [mode]);
 
   const handleClearAll = () => {
+    pushHistory({ ...EMPTY_COUNTS }, { ...EMPTY_ADJUSTMENTS });
     setCounts({ ...EMPTY_COUNTS });
     setAdj({ ...EMPTY_ADJUSTMENTS });
   };
@@ -189,12 +243,11 @@ const CounterForm: React.FC = () => {
     setReviewing(true);
   };
 
-  const buildShareText = useCallback(() => {
+  const buildShareText = useCallback((includeTitle: boolean) => {
     const date = new Date().toLocaleDateString();
     const lines = [
-      `📊 ${t('headcount.yourCount')} — ${date}`,
-      '',
-      ...ZONE_NAMES.map(({ key, label }) => `  ${label}: ${finalCounts[key]}`),
+      ...(includeTitle ? [`📊 ${t('headcount.yourCount')} — ${date}`, ''] : []),
+      ...ZONE_KEYS.map((key) => `  ${t(`zones.${key}`)}: ${finalCounts[key]}`),
       `  ─────────`,
       `  ${t('common.total')}: ${total}`,
       '',
@@ -206,21 +259,25 @@ const CounterForm: React.FC = () => {
   const reviewRef = useRef<HTMLDivElement>(null);
 
   const handleShare = useCallback(async () => {
-    const text = buildShareText();
     setSharing(true);
     setCopied(false);
     try {
       if (navigator.share) {
-        await navigator.share({ title: t('headcount.yourCount'), text });
+        // navigator.share prepends the title, so omit it from the body
+        const date = new Date().toLocaleDateString();
+        await navigator.share({
+          title: `📊 ${t('headcount.yourCount')} — ${date}`,
+          text: buildShareText(false),
+        });
       } else {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(buildShareText(true));
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }
     } catch {
       // User cancelled share or clipboard failed — try clipboard as fallback
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(buildShareText(true));
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch { /* ignore */ }
@@ -239,9 +296,9 @@ const CounterForm: React.FC = () => {
             <span className="text-gray-500">{t('common.mode')}</span>
             <span className="font-semibold text-gray-800">{mode === 'capacity' ? `🪑 ${t('headcount.capacityMode')}` : `👥 ${t('headcount.peopleMode')}`}</span>
           </div>
-          {ZONE_NAMES.map(({ key, label }) => (
+          {ZONE_KEYS.map((key) => (
             <div key={key} className="flex justify-between text-sm">
-              <span className="text-gray-500">{label}</span>
+              <span className="text-gray-500">{t(`zones.${key}`)}</span>
               <span className="font-bold text-gray-800">{finalCounts[key]}</span>
             </div>
           ))}
@@ -286,6 +343,26 @@ const CounterForm: React.FC = () => {
         </div>
       )}
 
+      {/* Undo / Redo */}
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={handleUndo}
+          disabled={!canUndo}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold transition-all disabled:opacity-30 active:scale-95 bg-white text-gray-600 hover:bg-gray-50"
+        >
+          <span className="text-base">↩</span> {t('headcount.undo')}
+        </button>
+        <button
+          type="button"
+          onClick={handleRedo}
+          disabled={!canRedo}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold transition-all disabled:opacity-30 active:scale-95 bg-white text-gray-600 hover:bg-gray-50"
+        >
+          {t('headcount.redo')} <span className="text-base">↪</span>
+        </button>
+      </div>
+
       {/* Mode toggle — prominent */}
       <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-4">
         <button
@@ -318,15 +395,14 @@ const CounterForm: React.FC = () => {
         {mode === 'people' && (
           <>
             <div className="space-y-2">
-              {(['left', 'middle', 'right', 'production', 'outside'] as const).map((key) => {
-                const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
+              {ZONE_KEYS.map((key) => {
                 const accent = key === 'left' ? 'blue' : key === 'middle' ? 'emerald' : key === 'right' ? 'violet' : key === 'production' ? 'amber' : 'slate';
                 return (
                   <CountInput
                     key={key}
-                    label={zoneInfo.label}
+                    label={t(`zones.${key}`)}
                     value={counts[key]}
-                    onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
+                    onChange={(val) => updateCounts((c) => ({ ...c, [key]: val }))}
                     colorAccent={accent}
                   />
                 );
@@ -340,40 +416,34 @@ const CounterForm: React.FC = () => {
           <>
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 text-xs text-blue-700 space-y-0.5">
               <p className="font-bold">{t('headcount.howCapacityWorks')}</p>
-              <p dangerouslySetInnerHTML={{ __html: t('headcount.capacityInstruction') }} />
-              <p className="text-blue-500" dangerouslySetInnerHTML={{ __html: t('headcount.capacityFormula') }} />
+              <p><Trans i18nKey="headcount.capacityInstruction" components={{ 1: <strong /> }} /></p>
+              <p className="text-blue-500"><Trans i18nKey="headcount.capacityFormula" components={{ 1: <em /> }} /></p>
             </div>
 
             <div className="space-y-3">
-              {(['left', 'middle', 'right'] as const).map((key) => {
-                const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
-                return (
+              {(['left', 'middle', 'right'] as const).map((key) => (
                   <CapacityBlock
                     key={key}
-                    label={zoneInfo.label}
+                    label={t(`zones.${key}`)}
                     capacity={SECTION_TOTALS[key]}
                     net={adj[key]}
-                    onChange={(v) => setAdj((a) => ({ ...a, [key]: v }))}
+                    onChange={(v) => updateAdj((a) => ({ ...a, [key]: v }))}
                   />
-                );
-              })}
+              ))}
             </div>
 
             {/* Production + Outside still as direct count */}
             <p className="text-xs text-gray-400 text-center">{t('headcount.prodOutsideDirect')}</p>
             <div className="space-y-2">
-              {(['production', 'outside'] as const).map((key) => {
-                const zoneInfo = ZONE_NAMES.find((z) => z.key === key)!;
-                return (
+              {(['production', 'outside'] as const).map((key) => (
                   <CountInput
                     key={key}
-                    label={zoneInfo.label}
+                    label={t(`zones.${key}`)}
                     value={counts[key]}
-                    onChange={(val) => setCounts((c) => ({ ...c, [key]: val }))}
+                    onChange={(val) => updateCounts((c) => ({ ...c, [key]: val }))}
                     colorAccent={key === 'production' ? 'amber' : 'slate'}
                   />
-                );
-              })}
+              ))}
             </div>
           </>
         )}
@@ -479,10 +549,10 @@ const HistoryPanel: React.FC<{
             </div>
             {entry.totals && (
               <div className="grid grid-cols-5 gap-1 text-center">
-                {ZONE_NAMES.map(({ key, label }) => (
+                {ZONE_KEYS.map((key) => (
                   <div key={key} className="bg-gray-50 rounded-lg py-1">
                     <div className="text-xs font-bold text-gray-700">{entry.totals![key]}</div>
-                    <div className="text-[9px] text-gray-400">{label.slice(0, 4)}</div>
+                    <div className="text-[9px] text-gray-400">{t(`zones.${key}`).slice(0, 4)}</div>
                   </div>
                 ))}
               </div>

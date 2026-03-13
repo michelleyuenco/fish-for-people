@@ -13,6 +13,7 @@ import {
 import type { ServiceRequest, RequestType, RequestStatus } from '../../domain/models/Request';
 import type { SectionName } from '../../domain/models/Seat';
 import { requestsCollection } from '../firebase/collections';
+import { sanitizeText, sanitizePhone } from '../../domain/rules/sanitize';
 
 function firestoreDocToRequest(id: string, data: Record<string, unknown>): ServiceRequest {
   return {
@@ -67,15 +68,18 @@ export class RequestService {
     }
   ): Promise<string> {
     const col = requestsCollection(this.db, serviceId);
+    const note = sanitizeText(payload.note);
+    const contactName = payload.contactName ? sanitizeText(payload.contactName, 100) : undefined;
+    const contactPhone = payload.contactPhone ? sanitizePhone(payload.contactPhone) : undefined;
     const docRef = await addDoc(col, {
       section: payload.section,
       row: payload.row,
-      ...(payload.areaLabel ? { areaLabel: payload.areaLabel } : {}),
+      ...(payload.areaLabel ? { areaLabel: sanitizeText(payload.areaLabel, 100) } : {}),
       type: payload.type,
       quantity: payload.quantity,
-      note: payload.note,
-      ...(payload.contactName ? { contactName: payload.contactName } : {}),
-      ...(payload.contactPhone ? { contactPhone: payload.contactPhone } : {}),
+      note,
+      ...(contactName ? { contactName } : {}),
+      ...(contactPhone ? { contactPhone } : {}),
       status: 'pending' as RequestStatus,
       createdAt: serverTimestamp(),
       resolvedAt: null,

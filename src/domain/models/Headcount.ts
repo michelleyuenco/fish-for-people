@@ -33,10 +33,5 @@ export interface HeadcountDiscrepancy {
   diff: number;
 }
 
-export const ZONE_NAMES: { key: ZoneName; label: string }[] = [
-  { key: 'left', label: 'Left' },
-  { key: 'middle', label: 'Middle' },
-  { key: 'right', label: 'Right' },
-  { key: 'production', label: 'Production Room' },
-  { key: 'outside', label: 'Outside' },
-];
+/** Ordered list of zone keys. Use i18n key `zones.${key}` for display labels. */
+export const ZONE_KEYS: ZoneName[] = ['left', 'middle', 'right', 'production', 'outside'];

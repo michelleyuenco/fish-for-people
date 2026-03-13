@@ -9,6 +9,7 @@ import type { SectionName } from '../../domain/models/Seat';
 import { REQUEST_TYPE_ICONS } from '../../domain/constants/requests';
 import { FloorPlanPicker, type FloorPlanSelection } from '../components/FloorPlanPicker';
 import { useHandedness } from '../../application/hooks/useHandedness';
+import { STORAGE_KEYS } from '../../domain/constants/storageKeys';
 
 // ─── Animation Variants ──────────────────────────────────────────────────────
 
@@ -68,11 +69,10 @@ interface SubmitFormState {
 function isValidHKPhone(phone: string): boolean {
   return /^[2-9]\d{7}$/.test(phone.replace(/\s/g, ''));
 }
-const LOCATION_STORAGE_KEY = 'fish-for-people:last-location-v2';
 
 function getSavedLocation(): FloorPlanSelection | null {
   try {
-    const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_LOCATION);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as FloorPlanSelection;
     if (['left', 'middle', 'right'].includes(parsed.section) && typeof parsed.row === 'number' && parsed.areaLabel) {
@@ -131,7 +131,7 @@ const CongregationView: React.FC<{
     };
     const result = await onSubmit(payload);
     if (result.success) {
-      localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(form.location));
+      localStorage.setItem(STORAGE_KEYS.LAST_LOCATION, JSON.stringify(form.location));
       setLastSubmission(payload);
       setSubmittedRequestId(result.requestId ?? null);
       setSubmitted(true);
@@ -299,7 +299,7 @@ const CongregationView: React.FC<{
               onChange={(loc) => {
                 setForm((f) => ({ ...f, location: loc }));
                 setShowLocationPicker(false);
-                localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
+                localStorage.setItem(STORAGE_KEYS.LAST_LOCATION, JSON.stringify(loc));
               }}
             />
           </motion.div>
@@ -378,10 +378,10 @@ const CongregationView: React.FC<{
           {form.type && !showTypePicker && (
             <motion.div
               key="extra-fields"
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24, delay: 0.25 }}
             >
               <div className="card space-y-3" ref={extraFieldsRef}>
                 {/* Quantity stepper — aligned to dominant hand side */}
@@ -447,6 +447,9 @@ const CongregationView: React.FC<{
                   >
                     <p className="text-xs font-semibold text-teal-700">
                       {t('congregation.voiceoverContactNote')}
+                    </p>
+                    <p className="text-[10px] text-teal-600/70">
+                      {t('congregation.contactPrivacy')}
                     </p>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-0.5">

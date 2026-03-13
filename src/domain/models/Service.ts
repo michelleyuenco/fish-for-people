@@ -4,3 +4,5 @@ export interface ChurchService {
 }
 
 export type UserRole = 'welcome-team' | 'congregation';
+
+export type TabName = 'seats' | 'requests' | 'headcount';

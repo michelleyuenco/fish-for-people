@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { HeadcountEntry, ConfirmedCount, ZoneCounts } from '../../domain/models/Headcount';
 import { getHeadcountService } from '../../infrastructure/services/ServiceProvider';
 import { submitHeadcount, confirmHeadcount } from '../usecases/headcountUseCases';
@@ -76,20 +76,33 @@ export function useHeadcount(serviceId: string) {
   );
 
   // Get the most recent entry per counter name
-  const getLatestEntryByCounter = (counterName: string): HeadcountEntry | null => {
-    const counterEntries = entries
-      .filter((e) => e.counterName.toLowerCase() === counterName.toLowerCase())
-      .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
-    return counterEntries[0] || null;
-  };
+  const getLatestEntryByCounter = useCallback(
+    (counterName: string): HeadcountEntry | null => {
+      const counterEntries = entries
+        .filter((e) => e.counterName.toLowerCase() === counterName.toLowerCase())
+        .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+      return counterEntries[0] || null;
+    },
+    [entries]
+  );
 
   // Get most recent two distinct counter names
-  const counterNames = [...new Set(entries.map((e) => e.counterName))];
-  const counterA = counterNames[0] ? getLatestEntryByCounter(counterNames[0]) : null;
-  const counterB = counterNames[1] ? getLatestEntryByCounter(counterNames[1]) : null;
+  const counterNames = useMemo(
+    () => [...new Set(entries.map((e) => e.counterName))],
+    [entries]
+  );
 
-  const discrepancies = findDiscrepancies(counterA, counterB);
-  const canConfirm = canConfirmHeadcount(counterA, counterB);
+  const counterA = useMemo(
+    () => (counterNames[0] ? getLatestEntryByCounter(counterNames[0]) : null),
+    [counterNames, getLatestEntryByCounter]
+  );
+  const counterB = useMemo(
+    () => (counterNames[1] ? getLatestEntryByCounter(counterNames[1]) : null),
+    [counterNames, getLatestEntryByCounter]
+  );
+
+  const discrepancies = useMemo(() => findDiscrepancies(counterA, counterB), [counterA, counterB]);
+  const canConfirm = useMemo(() => canConfirmHeadcount(counterA, counterB), [counterA, counterB]);
 
   return {
     entries,

@@ -1,5 +1,5 @@
 import type { HeadcountEntry, ZoneCounts, ZoneName, HeadcountDiscrepancy } from '../models/Headcount';
-import { ZONE_NAMES } from '../models/Headcount';
+import { ZONE_KEYS } from '../models/Headcount';
 
 const DISCREPANCY_THRESHOLD = 5;
 
@@ -9,8 +9,7 @@ export function calculateTotal(counts: ZoneCounts): number {
 
 export function validateHeadcount(counts: ZoneCounts): string[] {
   const errors: string[] = [];
-  const zones: ZoneName[] = ['left', 'middle', 'right', 'production', 'outside'];
-  for (const zone of zones) {
+  for (const zone of ZONE_KEYS) {
     if (counts[zone] < 0) {
       errors.push(`${zone} count cannot be negative`);
     }
@@ -28,7 +27,7 @@ export function findDiscrepancies(
   if (!entryA || !entryB) return [];
 
   const discrepancies: HeadcountDiscrepancy[] = [];
-  for (const { key } of ZONE_NAMES) {
+  for (const key of ZONE_KEYS) {
     const countA = entryA.counts[key];
     const countB = entryB.counts[key];
     const diff = Math.abs(countA - countB);

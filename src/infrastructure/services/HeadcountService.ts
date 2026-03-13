@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import type { HeadcountEntry, ConfirmedCount, ZoneCounts } from '../../domain/models/Headcount';
 import { headcountsCollection, confirmedCountsCollection } from '../firebase/collections';
+import { sanitizeText } from '../../domain/rules/sanitize';
 
 function firestoreDocToHeadcount(id: string, data: Record<string, unknown>): HeadcountEntry {
   return {
@@ -108,7 +109,7 @@ export class HeadcountService {
     const col = headcountsCollection(this.db, serviceId);
     const total = counts.left + counts.middle + counts.right + counts.production + counts.outside;
     const docRef = await addDoc(col, {
-      counterName,
+      counterName: sanitizeText(counterName, 100),
       left: counts.left,
       middle: counts.middle,
       right: counts.right,
