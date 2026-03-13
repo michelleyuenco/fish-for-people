@@ -1,4 +1,4 @@
-import type { HeadcountEntry, ZoneCounts, ZoneName, HeadcountDiscrepancy } from '../models/Headcount';
+import type { HeadcountEntry, ZoneCounts, HeadcountDiscrepancy } from '../models/Headcount';
 import { ZONE_KEYS } from '../models/Headcount';
 
 const DISCREPANCY_THRESHOLD = 5;
