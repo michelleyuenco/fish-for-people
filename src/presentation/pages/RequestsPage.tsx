@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRequests } from '../../application/hooks/useRequests';
 import { RequestCard } from '../components/RequestCard';
 import { REQUEST_TYPES, QUANTIFIABLE_TYPES } from '../../domain/models/Request';
@@ -9,6 +9,33 @@ import type { SectionName } from '../../domain/models/Seat';
 import { REQUEST_TYPE_ICONS } from '../../domain/constants/requests';
 import { FloorPlanPicker, type FloorPlanSelection } from '../components/FloorPlanPicker';
 import { useHandedness } from '../../application/hooks/useHandedness';
+
+// ─── Animation Variants ──────────────────────────────────────────────────────
+
+const fadeSlideUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
+  transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
+};
+
+const chipAppear = {
+  initial: { opacity: 0, scale: 0.9, y: -4 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15 } },
+  transition: { type: 'spring' as const, stiffness: 400, damping: 25 },
+};
+
+const staggerContainer = {
+  animate: {
+    transition: { staggerChildren: 0.04 },
+  },
+};
+
+const staggerItem = {
+  initial: { opacity: 0, scale: 0.85 },
+  animate: { opacity: 1, scale: 1 },
+};
 
 interface RequestsPageProps {
   serviceId: string;
@@ -235,7 +262,7 @@ const CongregationView: React.FC<{
     if (form.type && !showTypePicker) {
       const timer = setTimeout(() => {
         extraFieldsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 100);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [form.type, showTypePicker]);
@@ -243,207 +270,291 @@ const CongregationView: React.FC<{
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {/* ── Step 1: Location (compact) ────────────────────────── */}
-      {form.location && !showLocationPicker ? (
-        <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2">
-          <span className="text-primary text-sm">📍</span>
-          <span className="text-sm font-semibold text-primary flex-1">{form.location.areaLabel}</span>
-          <button
-            type="button"
-            onClick={() => setShowLocationPicker(true)}
-            className="text-xs text-primary underline font-medium"
+      <AnimatePresence mode="wait">
+        {form.location && !showLocationPicker ? (
+          <motion.div
+            key="location-chip"
+            {...chipAppear}
+            className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2"
           >
-            {t('congregation.changeLocation')}
-          </button>
-        </div>
-      ) : (
-        <div className="card space-y-2">
-          <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step1Title')}</h2>
-          <FloorPlanPicker
-            value={form.location}
-            onChange={(loc) => {
-              setForm((f) => ({ ...f, location: loc }));
-              setShowLocationPicker(false);
-              localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
-            }}
-          />
-        </div>
-      )}
-
-      {/* ── Step 2: What you need ────────────────────────────── */}
-      <div className={`transition-opacity ${form.location ? '' : 'opacity-40 pointer-events-none'}`}>
-        {/* Selected type chip OR full grid */}
-        {form.type && !showTypePicker ? (
-          <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2 mb-3">
-            <span className="text-lg" role="img" aria-hidden="true">{REQUEST_TYPE_ICONS[form.type as RequestType]}</span>
-            <span className="text-sm font-semibold text-primary flex-1">{t(`requestTypes.${form.type}`)}</span>
+            <span className="text-primary text-sm">📍</span>
+            <span className="text-sm font-semibold text-primary flex-1">{form.location.areaLabel}</span>
             <button
               type="button"
-              onClick={() => setShowTypePicker(true)}
+              onClick={() => setShowLocationPicker(true)}
               className="text-xs text-primary underline font-medium"
             >
               {t('congregation.changeLocation')}
             </button>
-          </div>
+          </motion.div>
         ) : (
-          <div className="card space-y-3 mb-3">
-            <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step2Title')}</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {REQUEST_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => {
-                    setForm((f: SubmitFormState) => ({ ...f, type }));
-                    setShowTypePicker(false);
-                  }}
-                  aria-label={t(`requestTypes.${type}`)}
-                  aria-pressed={form.type === type}
-                  className={`py-2 px-1.5 rounded-xl font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
-                    form.type === type
-                      ? 'bg-primary text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="text-xl leading-none" role="img" aria-hidden="true">
-                    {REQUEST_TYPE_ICONS[type]}
-                  </span>
-                  <span className="leading-tight text-center text-[11px]">{t(`requestTypes.${type}`)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <motion.div
+            key="location-picker"
+            {...fadeSlideUp}
+            className="card space-y-2"
+          >
+            <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step1Title')}</h2>
+            <FloorPlanPicker
+              value={form.location}
+              onChange={(loc) => {
+                setForm((f) => ({ ...f, location: loc }));
+                setShowLocationPicker(false);
+                localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(loc));
+              }}
+            />
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* ── Step 2: What you need ────────────────────────────── */}
+      <motion.div
+        animate={{ opacity: form.location ? 1 : 0.4 }}
+        transition={{ duration: 0.3 }}
+        className={form.location ? '' : 'pointer-events-none'}
+      >
+        <AnimatePresence mode="wait">
+          {/* Selected type chip OR full grid */}
+          {form.type && !showTypePicker ? (
+            <motion.div
+              key="type-chip"
+              {...chipAppear}
+              className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2 mb-3"
+            >
+              <span className="text-lg" role="img" aria-hidden="true">{REQUEST_TYPE_ICONS[form.type as RequestType]}</span>
+              <span className="text-sm font-semibold text-primary flex-1">{t(`requestTypes.${form.type}`)}</span>
+              <button
+                type="button"
+                onClick={() => setShowTypePicker(true)}
+                className="text-xs text-primary underline font-medium"
+              >
+                {t('congregation.changeLocation')}
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="type-grid"
+              {...fadeSlideUp}
+              className="card space-y-3 mb-3"
+            >
+              <h2 className="font-bold text-gray-800 text-sm">{t('congregation.step2Title')}</h2>
+              <motion.div
+                className="grid grid-cols-3 gap-2"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
+                {REQUEST_TYPES.map((type) => (
+                  <motion.button
+                    key={type}
+                    type="button"
+                    variants={staggerItem}
+                    transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setForm((f: SubmitFormState) => ({ ...f, type }));
+                      setShowTypePicker(false);
+                    }}
+                    aria-label={t(`requestTypes.${type}`)}
+                    aria-pressed={form.type === type}
+                    className={`py-2 px-1.5 rounded-xl font-medium text-xs flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
+                      form.type === type
+                        ? 'bg-primary text-white shadow-md'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="text-xl leading-none" role="img" aria-hidden="true">
+                      {REQUEST_TYPE_ICONS[type]}
+                    </span>
+                    <span className="leading-tight text-center text-[11px]">{t(`requestTypes.${type}`)}</span>
+                  </motion.button>
+                ))}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Follow-up fields — always visible when type is selected */}
-        {form.type && !showTypePicker && (
-          <div className="card space-y-3" ref={extraFieldsRef}>
-            {/* Quantity stepper — aligned to dominant hand side */}
-            {QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  {t('congregation.howMany')}
-                </label>
-                <div className={`flex items-center gap-2 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
-                  {!isLeftHanded && (
-                    <button
-                      type="button"
-                      onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                      className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                      aria-label="+"
-                    >+</button>
-                  )}
-                  <span className="text-xl font-bold text-primary w-8 text-center">{form.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
-                    disabled={form.quantity <= 1}
-                    className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 text-lg font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
-                    aria-label="−"
-                  >−</button>
-                  {isLeftHanded && (
-                    <button
-                      type="button"
-                      onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
-                      className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center active:scale-90 transition-all shadow-md"
-                      aria-label="+"
-                    >+</button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Contact info (for Voiceover Device) */}
-            {isVoiceover && (
-              <div className="space-y-2 bg-teal-50 border border-teal-200 rounded-xl p-3">
-                <p className="text-xs font-semibold text-teal-700">
-                  {t('congregation.voiceoverContactNote')}
-                </p>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-0.5">
-                    {t('congregation.contactName')}
-                  </label>
-                  <input
-                    type="text"
-                    value={form.contactName}
-                    onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
-                    placeholder={t('congregation.contactNamePlaceholder')}
-                    className="input-field py-2 text-sm"
-                    autoComplete="name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-0.5">
-                    {t('congregation.contactPhone')}
-                  </label>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    value={form.contactPhone}
-                    onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
-                    placeholder={t('congregation.contactPhonePlaceholder')}
-                    className={`input-field py-2 text-sm ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
-                    autoComplete="tel"
-                  />
-                  {form.contactPhone && !phoneValid && (
-                    <p className="text-xs text-red-500 mt-1">{t('congregation.invalidPhone')}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Prayer item (for Prayer requests) */}
-            {form.type === 'Prayer' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  {t('congregation.prayerItem')}
-                </label>
-                <textarea
-                  value={form.note}
-                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-                  placeholder={t('congregation.prayerItemPlaceholder')}
-                  rows={2}
-                  className="input-field resize-none text-sm"
-                />
-              </div>
-            )}
-
-            {/* Note (for "Other") */}
-            {form.type === 'Other' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  {t('congregation.pleaseDescribe')}
-                </label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {PRESET_KEYS.map((key) => {
-                    const label = t(key);
-                    return (
-                      <button
-                        key={key}
+        <AnimatePresence>
+          {form.type && !showTypePicker && (
+            <motion.div
+              key="extra-fields"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            >
+              <div className="card space-y-3" ref={extraFieldsRef}>
+                {/* Quantity stepper — aligned to dominant hand side */}
+                {QUANTIFIABLE_TYPES.includes(form.type as typeof QUANTIFIABLE_TYPES[number]) && (
+                  <motion.div
+                    initial={{ opacity: 0, x: isLeftHanded ? -12 : 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1, duration: 0.3, ease: 'easeOut' }}
+                  >
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      {t('congregation.howMany')}
+                    </label>
+                    <div className={`flex items-center gap-2 ${isLeftHanded ? 'justify-start' : 'justify-end'}`}>
+                      {!isLeftHanded && (
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                          className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center shadow-md"
+                          aria-label="+"
+                        >+</motion.button>
+                      )}
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={form.quantity}
+                          initial={{ opacity: 0, y: -10, scale: 0.8 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                          className="text-xl font-bold text-primary w-8 text-center"
+                        >
+                          {form.quantity}
+                        </motion.span>
+                      </AnimatePresence>
+                      <motion.button
                         type="button"
-                        onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-                          form.note === label
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-primary'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <textarea
-                  value={form.note}
-                  onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
-                  placeholder={t('congregation.orDescribe')}
-                  rows={2}
-                  className="input-field resize-none text-sm"
-                />
+                        whileTap={{ scale: 0.85 }}
+                        onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                        disabled={form.quantity <= 1}
+                        className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 text-lg font-bold flex items-center justify-center disabled:opacity-30"
+                        aria-label="−"
+                      >−</motion.button>
+                      {isLeftHanded && (
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => setForm((f: SubmitFormState) => ({ ...f, quantity: f.quantity + 1 }))}
+                          className="w-11 h-11 rounded-xl bg-primary text-white text-xl font-bold flex items-center justify-center shadow-md"
+                          aria-label="+"
+                        >+</motion.button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Contact info (for Voiceover Device) */}
+                {isVoiceover && (
+                  <motion.div
+                    className="space-y-2 bg-teal-50 border border-teal-200 rounded-xl p-3"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                  >
+                    <p className="text-xs font-semibold text-teal-700">
+                      {t('congregation.voiceoverContactNote')}
+                    </p>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-0.5">
+                        {t('congregation.contactName')}
+                      </label>
+                      <input
+                        type="text"
+                        value={form.contactName}
+                        onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactName: e.target.value }))}
+                        placeholder={t('congregation.contactNamePlaceholder')}
+                        className="input-field py-2 text-sm"
+                        autoComplete="name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-0.5">
+                        {t('congregation.contactPhone')}
+                      </label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={form.contactPhone}
+                        onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, contactPhone: e.target.value }))}
+                        placeholder={t('congregation.contactPhonePlaceholder')}
+                        className={`input-field py-2 text-sm ${form.contactPhone && !phoneValid ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                        autoComplete="tel"
+                      />
+                      <AnimatePresence>
+                        {form.contactPhone && !phoneValid && (
+                          <motion.p
+                            className="text-xs text-red-500 mt-1"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                          >
+                            {t('congregation.invalidPhone')}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Prayer item (for Prayer requests) */}
+                {form.type === 'Prayer' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                  >
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      {t('congregation.prayerItem')}
+                    </label>
+                    <textarea
+                      value={form.note}
+                      onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+                      placeholder={t('congregation.prayerItemPlaceholder')}
+                      rows={2}
+                      className="input-field resize-none text-sm"
+                    />
+                  </motion.div>
+                )}
+
+                {/* Note (for "Other") */}
+                {form.type === 'Other' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                  >
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      {t('congregation.pleaseDescribe')}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {PRESET_KEYS.map((key) => {
+                        const label = t(key);
+                        return (
+                          <motion.button
+                            key={key}
+                            type="button"
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => setForm((f: SubmitFormState) => ({ ...f, note: label }))}
+                            animate={form.note === label
+                              ? { backgroundColor: '#1B2B5E', color: '#FFFFFF', borderColor: '#1B2B5E' }
+                              : { backgroundColor: '#F9FAFB', color: '#4B5563', borderColor: '#D1D5DB' }
+                            }
+                            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                            className="text-xs px-2.5 py-1 rounded-full border"
+                          >
+                            {label}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                    <textarea
+                      value={form.note}
+                      onChange={(e) => setForm((f: SubmitFormState) => ({ ...f, note: e.target.value }))}
+                      placeholder={t('congregation.orDescribe')}
+                      rows={2}
+                      className="input-field resize-none text-sm"
+                    />
+                  </motion.div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Spacer so sticky button doesn't overlap content */}
       <div className="h-16" />
@@ -451,13 +562,19 @@ const CongregationView: React.FC<{
       {/* ── Submit — sticky at bottom ──────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm px-4 pb-safe border-t border-gray-100">
         <div className="max-w-lg mx-auto py-3">
-          <button
+          <motion.button
             type="submit"
             disabled={!canSubmit || submitting}
             className="btn-primary w-full text-lg py-3.5"
+            whileTap={{ scale: 0.97 }}
+            animate={canSubmit && !submitting
+              ? { opacity: 1 }
+              : { opacity: 0.5 }
+            }
+            transition={{ duration: 0.25 }}
           >
             {submitting ? t('congregation.callingForHelp') : t('congregation.callForHelp')}
-          </button>
+          </motion.button>
         </div>
       </div>
     </form>
