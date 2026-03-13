@@ -42,6 +42,10 @@ export const FloorPlanPage: React.FC<FloorPlanPageProps> = ({ serviceId }) => {
   const navigate = useNavigate();
   const isLandscape = useIsLandscape();
 
+  useEffect(() => {
+    document.title = `${t('nav.floorPlan')} | Fish for People`;
+  }, [t]);
+
   const recommendedSeats = useMemo(
     () => getRecommendedSeats(seatMap, 3),
     [seatMap]

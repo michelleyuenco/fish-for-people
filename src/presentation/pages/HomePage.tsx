@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES } from '../../i18n';
 import type { UserRole } from '../../domain/models/Service';
@@ -22,6 +22,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectRole }) => {
   const { t, i18n } = useTranslation();
   const lastRole = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole | null;
   const [showIchthys, setShowIchthys] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Fish for People';
+  }, []);
 
   const handleSelectRole = (role: UserRole) => {
     localStorage.setItem(ROLE_STORAGE_KEY, role);

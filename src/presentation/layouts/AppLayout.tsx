@@ -65,6 +65,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     };
   }, []);
 
+  // Update browser tab title
+  useEffect(() => {
+    document.title = title ? `${title} | Fish for People` : 'Fish for People';
+  }, [title]);
+
   // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
@@ -100,15 +105,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Top App Bar */}
       <header className="bg-primary text-white px-4 pt-safe sticky top-0 z-40 shadow-md">
         <div className="flex items-center justify-between h-14">
-          {/* Logo + app name */}
-          <button
-            onClick={() => onChangeRole?.()}
-            className="flex items-center gap-2 hover:opacity-80 active:opacity-60 transition-opacity"
-            aria-label={t('common.appName')}
-          >
-            <span className="text-2xl">🐟</span>
-            <span className="hidden md:inline text-lg font-bold tracking-tight">{t('common.appName')}</span>
-          </button>
+          {/* Logo + page title (mobile) / app name (desktop) */}
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => onChangeRole?.()}
+              className="flex items-center gap-2 hover:opacity-80 active:opacity-60 transition-opacity flex-shrink-0"
+              aria-label={t('common.appName')}
+            >
+              <span className="text-2xl">🐟</span>
+              <span className="hidden md:inline text-lg font-bold tracking-tight">{t('common.appName')}</span>
+            </button>
+            <span className="md:hidden text-sm text-white/80 font-medium truncate">{title}</span>
+          </div>
 
           {/* Desktop inline nav tabs (welcome team only, md+) */}
           {role === 'welcome-team' && (
@@ -319,10 +327,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               )}
             </div>
           </div>
-        </div>
-        {/* Page title bar */}
-        <div className="pb-3">
-          <h1 className="text-sm text-white/70">{title}</h1>
         </div>
       </header>
 
