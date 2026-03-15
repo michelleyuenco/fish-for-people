@@ -17,6 +17,8 @@
     "textSize": "字体大小",
     "total": "合计",
     "people": "人",
+    "tapToAdd": "点击加一",
+    "tapToEdit": "点击编辑",
     "mode": "模式",
     "close": "关闭",
     "help": "说明",
@@ -107,7 +109,8 @@
     "reservedFor": "保留给{{type}}",
     "suggested": "建议入座",
     "fillRow": "填满整排",
-    "clearRow": "清空整排"
+    "clearRow": "清空整排",
+    "seatRange": "座位 {{start}}–{{end}}"
   },
   "congregation": {
     "step1Title": "您坐在哪里？",
@@ -219,7 +222,10 @@
     "prodOutsideDirect": "副控室与室外：直接计算人数",
     "calculatedFromCapacity": "依座位容量换算",
     "reviewCount": "确认统计 →",
-    "clearAll": "全部清除 / 归零",
+    "clearAll": "清除",
+    "confirmClearAll": "确定要清除吗？所有计数数据将归零。",
+    "cancel": "取消",
+    "confirmClear": "确定清除",
     "confirmSubmit": "确认并提交 ✓",
     "shareCount": "分享统计",
     "copied": "已复制！",
@@ -230,7 +236,31 @@
     "recentServices": "近期聚会记录",
     "services": "聚会数",
     "avgAttendance": "平均出席",
-    "recordHigh": "最高纪录"
+    "recordHigh": "最高纪录",
+    "autoSaving": "保存中...",
+    "confirmSession": "确认堂次",
+    "singleCounterConfirm": "您是唯一的计数员。请确认您的数据作为正式统计。",
+    "pickPerZone": "请逐区选择要采用哪位计数员的数据。",
+    "officialTotal": "正式合计",
+    "sessionConfirmed": "堂次已确认",
+    "sessionDone": "等待下一堂",
+    "notStartedYet": "此堂尚未开始",
+    "startsAt": "开始时间：{{time}}",
+    "fullDaySummary": "全日统计",
+    "grandTotal": "全日合计",
+    "copyAndShare": "复制并分享",
+    "waitingAllSessions": "尚有堂次未确认",
+    "missingSessionsHint": "缺少",
+    "confirmSentQuestion": "您已成功发送结果了吗？",
+    "confirmSentBody": "确认后将删除今日所有出席数据，此操作无法恢复。",
+    "yesDeleteData": "确定，删除所有数据",
+    "notYet": "还没",
+    "noData": "无数据"
+  },
+  "sessions": {
+    "morning": "早堂",
+    "noon": "午堂",
+    "afternoon": "午后堂"
   },
   "floorPlanPage": {
     "loading": "正在加载座位图...",
@@ -255,6 +285,28 @@
     "fillCenterOutward": "由中间向两侧填满",
     "needHelp": "需要帮助？",
     "qrDescription": "扫描 QR Code 即可索取笔、奉献信封、翻译耳机或其他协助"
+  },
+  "zonePlan": {
+    "pageTitle": "区域空位",
+    "kioskTitle": "区域空位概览",
+    "instructions": "设定每个区域的大约空位数。展示屏将显示近似的座位分布。",
+    "openKiosk": "打开展示屏",
+    "approximate": "近似值",
+    "totalAvailable": "总空位",
+    "capacityLabel": "最多 {{capacity}} 个座位",
+    "confirmClearAll": "确定将所有区域归零？",
+    "tapHint": "点击区域增加空位 · 减号移除 · 编辑可直接输入",
+    "shortcutTitle": "区域模式",
+    "shortcutDesc": "快速设定各区域大约空位数",
+    "region": {
+      "front": "前排",
+      "frontMid": "前中排",
+      "mid": "中排",
+      "back": "后排",
+      "rear": "最后排",
+      "family": "家庭 / 长者",
+      "volunteer": "义工"
+    }
   },
   "pageTitle": {
     "seats": "座位追踪",

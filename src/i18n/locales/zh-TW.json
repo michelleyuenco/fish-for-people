@@ -17,6 +17,8 @@
     "textSize": "字體大小",
     "total": "合計",
     "people": "人",
+    "tapToAdd": "點擊加一",
+    "tapToEdit": "點擊編輯",
     "mode": "模式",
     "close": "關閉",
     "help": "說明",
@@ -107,7 +109,8 @@
     "reservedFor": "保留給{{type}}",
     "suggested": "建議入座",
     "fillRow": "填滿整排",
-    "clearRow": "清空整排"
+    "clearRow": "清空整排",
+    "seatRange": "座位 {{start}}–{{end}}"
   },
   "congregation": {
     "step1Title": "您坐在哪裡？",
@@ -219,7 +222,10 @@
     "prodOutsideDirect": "副控室與室外：直接計算人數",
     "calculatedFromCapacity": "依座位容量換算",
     "reviewCount": "確認統計 →",
-    "clearAll": "全部清除 / 歸零",
+    "clearAll": "清除",
+    "confirmClearAll": "確定要清除嗎？所有計數資料將歸零。",
+    "cancel": "取消",
+    "confirmClear": "確定清除",
     "confirmSubmit": "確認並提交 ✓",
     "shareCount": "分享統計",
     "copied": "已複製！",
@@ -230,7 +236,31 @@
     "recentServices": "近期聚會紀錄",
     "services": "聚會數",
     "avgAttendance": "平均出席",
-    "recordHigh": "最高紀錄"
+    "recordHigh": "最高紀錄",
+    "autoSaving": "儲存中...",
+    "confirmSession": "確認堂次",
+    "singleCounterConfirm": "您是唯一的計數員。請確認您的數據作為正式統計。",
+    "pickPerZone": "請逐區選擇要採用哪位計數員的數據。",
+    "officialTotal": "正式合計",
+    "sessionConfirmed": "堂次已確認",
+    "sessionDone": "等待下一堂",
+    "notStartedYet": "此堂尚未開始",
+    "startsAt": "開始時間：{{time}}",
+    "fullDaySummary": "全日統計",
+    "grandTotal": "全日合計",
+    "copyAndShare": "複製並分享",
+    "waitingAllSessions": "尚有堂次未確認",
+    "missingSessionsHint": "缺少",
+    "confirmSentQuestion": "您已成功傳送結果了嗎？",
+    "confirmSentBody": "確認後將刪除今日所有出席資料，此操作無法復原。",
+    "yesDeleteData": "確定，刪除所有資料",
+    "notYet": "還沒",
+    "noData": "無資料"
+  },
+  "sessions": {
+    "morning": "早堂",
+    "noon": "午堂",
+    "afternoon": "午後堂"
   },
   "floorPlanPage": {
     "loading": "正在載入座位圖...",
@@ -255,6 +285,28 @@
     "fillCenterOutward": "由中間向兩側填滿",
     "needHelp": "需要幫助？",
     "qrDescription": "掃描 QR Code 即可索取筆、奉獻信封、翻譯耳機或其他協助"
+  },
+  "zonePlan": {
+    "pageTitle": "區域空位",
+    "kioskTitle": "區域空位概覽",
+    "instructions": "設定每個區域的大約空位數。展示螢幕將顯示近似的座位分佈。",
+    "openKiosk": "開啟展示螢幕",
+    "approximate": "近似值",
+    "totalAvailable": "總空位",
+    "capacityLabel": "最多 {{capacity}} 個座位",
+    "confirmClearAll": "確定將所有區域歸零？",
+    "tapHint": "點擊區域增加空位 · 減號移除 · 編輯可直接輸入",
+    "shortcutTitle": "區域模式",
+    "shortcutDesc": "快速設定各區域大約空位數",
+    "region": {
+      "front": "前排",
+      "frontMid": "前中排",
+      "mid": "中排",
+      "back": "後排",
+      "rear": "最後排",
+      "family": "家庭 / 長者",
+      "volunteer": "義工"
+    }
   },
   "pageTitle": {
     "seats": "座位追蹤",

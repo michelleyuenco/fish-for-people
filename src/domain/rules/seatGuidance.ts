@@ -46,7 +46,7 @@ export function getRecommendedSeats(
 /**
  * Returns column numbers in preferred fill order for a given section.
  */
-function getColFillOrder(section: SectionName, seatsInRow: number): number[] {
+export function getColFillOrder(section: SectionName, seatsInRow: number): number[] {
   const cols = Array.from({ length: seatsInRow }, (_, i) => i + 1);
 
   switch (section) {

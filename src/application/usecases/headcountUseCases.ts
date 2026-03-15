@@ -1,10 +1,12 @@
 import type { ZoneCounts, HeadcountEntry } from '../../domain/models/Headcount';
-import { validateHeadcount, mergeConfirmedCounts } from '../../domain/rules/headcountRules';
+import type { SessionName } from '../../domain/constants/sessions';
+import { validateHeadcount } from '../../domain/rules/headcountRules';
 import { getHeadcountService } from '../../infrastructure/services/ServiceProvider';
 
-export async function submitHeadcount(
+export async function upsertHeadcount(
   serviceId: string,
-  counterName: string,
+  counterLabel: string,
+  session: SessionName,
   counts: ZoneCounts
 ): Promise<{ success: boolean; errors: string[]; id?: string }> {
   const errors = validateHeadcount(counts);
@@ -12,17 +14,26 @@ export async function submitHeadcount(
     return { success: false, errors };
   }
   const service = getHeadcountService();
-  const id = await service.submitHeadcount(serviceId, counterName, counts);
+  const id = await service.upsertHeadcount(serviceId, counterLabel, session, counts);
   return { success: true, errors: [], id };
 }
 
-export async function confirmHeadcount(
+export async function confirmSessionHeadcount(
   serviceId: string,
   date: string,
-  entryA: HeadcountEntry,
-  entryB: HeadcountEntry
+  session: SessionName,
+  confirmedBy: string,
+  counters: HeadcountEntry[],
+  officialTotals: ZoneCounts
 ): Promise<void> {
   const service = getHeadcountService();
-  const totals = mergeConfirmedCounts(entryA, entryB);
-  await service.confirmHeadcount(serviceId, date, entryA, entryB, totals);
+  await service.confirmSessionHeadcount(serviceId, date, session, confirmedBy, counters, officialTotals);
+}
+
+export async function cleanupDayData(
+  serviceId: string,
+  date: string
+): Promise<void> {
+  const service = getHeadcountService();
+  await service.deleteAllDayData(serviceId, date);
 }

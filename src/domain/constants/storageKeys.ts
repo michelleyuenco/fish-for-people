@@ -11,4 +11,7 @@ export const STORAGE_KEYS = {
   HEADCOUNT_COUNTS: 'fish-for-people:headcount-counts',
   HEADCOUNT_ADJ: 'fish-for-people:headcount-adj',
   HEADCOUNT_MODE: 'fish-for-people:headcount-mode',
+  ZONE_COUNTS: 'fish-for-people:zone-counts',
+  HEADCOUNT_COUNTER_LABEL: 'fish-for-people:headcount-counter-label',
+  HEADCOUNT_SESSION: 'fish-for-people:headcount-session',
 } as const;

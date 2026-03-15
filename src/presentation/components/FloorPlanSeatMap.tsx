@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Seat, SectionName } from '../../domain/models/Seat';
-import { SECTIONS, getRowReservation } from '../../domain/constants/seating';
+import { SECTIONS, getRowReservation, getRowLabel, getGlobalSeatNumber, getSeatCoordinate, getSectionSeatRange } from '../../domain/constants/seating';
 
 interface FloorPlanSeatMapProps {
   seatMap: Map<string, Seat>;
@@ -117,7 +117,7 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
             >
               {/* Row label */}
               <span className="text-[10px] text-gray-400 font-semibold w-5 text-right mr-1.5 flex-shrink-0">
-                {rowNum}
+                {getRowLabel(rowNum)}
               </span>
 
               {SECTIONS.map((section, secIdx) => {
@@ -193,6 +193,8 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                         const isToggling = toggling.has(seatId);
                         const isRecommended = hasRecommendations && recommendedSeats.has(seatId);
                         const rowReservation = getRowReservation(section.name, rowNum);
+                        const globalNum = getGlobalSeatNumber(section.name, rowNum, colNum);
+                        const seatCoord = getSeatCoordinate(section.name, rowNum, colNum);
 
                         let colorClass: string;
                         let statusLabel: string;
@@ -244,6 +246,9 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                             : t('seats.available');
                         }
 
+                        // Text color: white on dark backgrounds (occupied/red), dark on light
+                        const numColor = seat.occupied ? 'text-white/80' : 'text-gray-700/70';
+
                         return (
                           <button
                             key={seatId}
@@ -251,17 +256,23 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                               if (canToggle && !isToggling) onToggle(seat);
                             }}
                             disabled={!canToggle || isToggling}
-                            aria-label={`${section.label} ${t('welcomeTeam.row', { row: rowNum })} ${colNum}: ${statusLabel}`}
+                            title={seatCoord}
+                            aria-label={`${seatCoord}: ${statusLabel}`}
                             aria-pressed={seat.occupied}
                             style={inlineColor ? { backgroundColor: inlineColor } : undefined}
                             className={`
                               w-[22px] h-[22px] md:w-[26px] md:h-[26px] rounded-sm flex-shrink-0 transition-all duration-150
+                              flex items-center justify-center
                               ${colorClass}
                               ${canToggle && !isToggling ? 'cursor-pointer hover:opacity-80 hover:scale-110 active:scale-90' : 'cursor-default'}
                               ${isToggling ? 'scale-75 opacity-60 animate-pulse' : ''}
                               focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary
                             `}
-                          />
+                          >
+                            <span className={`text-[7px] md:text-[8px] font-semibold leading-none select-none ${numColor}`}>
+                              {globalNum}
+                            </span>
+                          </button>
                         );
                       });
 
@@ -295,19 +306,21 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
 
               {/* Row label (right side) */}
               <span className="text-[10px] text-gray-400 font-semibold w-5 text-left ml-1.5 flex-shrink-0">
-                {rowNum}
+                {getRowLabel(rowNum)}
               </span>
             </div>
           );
         })}
       </div>
 
-      {/* Section labels at bottom */}
+      {/* Section labels at bottom with seat ranges */}
       <div className="flex items-center justify-center mt-3 gap-0">
         <span className="w-5 mr-1.5 flex-shrink-0" />
         {SECTIONS.map((section, secIdx) => {
           const maxSeats = section.seatsPerRow(2);
           const showToggle = canToggle && onToggleRow;
+          // Use row 2 (typical row) for range display
+          const [rangeStart, rangeEnd] = getSectionSeatRange(section.name, 2);
           return (
             <div
               key={section.name}
@@ -321,6 +334,9 @@ export const FloorPlanSeatMap: React.FC<FloorPlanSeatMapProps> = ({
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">
                   {section.label}
                 </span>
+                <div className="text-[9px] text-gray-400 font-medium leading-tight">
+                  {t('seats.seatRange', { start: rangeStart, end: rangeEnd })}
+                </div>
               </div>
             </div>
           );

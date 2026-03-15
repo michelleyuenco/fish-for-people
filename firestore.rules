@@ -75,16 +75,18 @@ service cloud.firestore {
         allow delete: if true;
       }
 
-      // Headcount entries: submitted by two independent counters
+      // Headcount entries: auto-saved by counters during sessions
       match /headcounts/{entryId} {
         allow read: if true;
-        allow create: if request.resource.data.keys().hasAll(['counterName', 'total', 'submittedAt'])
+        allow create: if request.resource.data.keys().hasAll(['counterName', 'session', 'total', 'submittedAt'])
           && request.resource.data.counterName is string
           && request.resource.data.counterName.size() >= 1
+          && request.resource.data.session in ['morning', 'noon', 'afternoon']
           && request.resource.data.total is int
           && request.resource.data.total >= 0;
-        allow update: if false; // Immutable once submitted
-        allow delete: if false;
+        allow update: if request.resource.data.counterName == resource.data.counterName
+          && request.resource.data.session == resource.data.session;
+        allow delete: if true;
       }
 
       // Confirmed attendance: locked once both counters agree

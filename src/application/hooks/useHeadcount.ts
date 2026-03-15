@@ -1,27 +1,28 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { HeadcountEntry, ConfirmedCount, ZoneCounts } from '../../domain/models/Headcount';
+import type { SessionName } from '../../domain/constants/sessions';
 import { getHeadcountService } from '../../infrastructure/services/ServiceProvider';
-import { submitHeadcount, confirmHeadcount } from '../usecases/headcountUseCases';
-import {
-  findDiscrepancies,
-  canConfirmHeadcount,
-} from '../../domain/rules/headcountRules';
+import { upsertHeadcount, confirmSessionHeadcount } from '../usecases/headcountUseCases';
 
-export function useHeadcount(serviceId: string) {
+export function useHeadcount(serviceId: string, session: SessionName) {
   const [entries, setEntries] = useState<HeadcountEntry[]>([]);
   const [confirmedCounts, setConfirmedCounts] = useState<ConfirmedCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Debounce timer for auto-save
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!serviceId) return;
+    if (!serviceId || !session) return;
 
     const service = getHeadcountService();
 
-    const unsubEntries = service.subscribeToHeadcounts(
+    const unsubEntries = service.subscribeToSessionHeadcounts(
       serviceId,
+      session,
       (updatedEntries) => {
         setEntries(updatedEntries);
         setLoading(false);
@@ -41,83 +42,73 @@ export function useHeadcount(serviceId: string) {
     return () => {
       unsubEntries();
       unsubConfirmed();
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [serviceId]);
+  }, [serviceId, session]);
 
-  const handleSubmitHeadcount = useCallback(
-    async (counterName: string, counts: ZoneCounts): Promise<{ success: boolean; errors: string[] }> => {
-      setSubmitting(true);
-      try {
-        const result = await submitHeadcount(serviceId, counterName, counts);
-        return { success: result.success, errors: result.errors };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to submit headcount';
-        return { success: false, errors: [message] };
-      } finally {
-        setSubmitting(false);
-      }
+  /** Debounced auto-save — call on every count change. */
+  const saveCount = useCallback(
+    (counterLabel: string, counts: ZoneCounts) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      setSaving(true);
+      saveTimerRef.current = setTimeout(async () => {
+        try {
+          await upsertHeadcount(serviceId, counterLabel, session, counts);
+        } catch (err) {
+          setError(err instanceof Error ? err : new Error('Failed to save'));
+        } finally {
+          setSaving(false);
+        }
+      }, 500);
     },
-    [serviceId]
+    [serviceId, session]
   );
 
-  const handleConfirmHeadcount = useCallback(
-    async (entryA: HeadcountEntry, entryB: HeadcountEntry): Promise<void> => {
+  /** Confirm the session with zone-by-zone picked totals. */
+  const confirmSession = useCallback(
+    async (confirmedBy: string, officialTotals: ZoneCounts): Promise<void> => {
       setConfirming(true);
       try {
         const date = new Date().toISOString().split('T')[0];
-        await confirmHeadcount(serviceId, date, entryA, entryB);
+        await confirmSessionHeadcount(serviceId, date, session, confirmedBy, entries, officialTotals);
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to confirm headcount'));
+        setError(err instanceof Error ? err : new Error('Failed to confirm'));
       } finally {
         setConfirming(false);
       }
     },
-    [serviceId]
+    [serviceId, session, entries]
   );
 
-  // Get the most recent entry per counter name
-  const getLatestEntryByCounter = useCallback(
-    (counterName: string): HeadcountEntry | null => {
-      const counterEntries = entries
-        .filter((e) => e.counterName.toLowerCase() === counterName.toLowerCase())
-        .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
-      return counterEntries[0] || null;
-    },
-    [entries]
-  );
-
-  // Get most recent two distinct counter names
+  /** All counter labels in this session. */
   const counterNames = useMemo(
     () => [...new Set(entries.map((e) => e.counterName))],
     [entries]
   );
 
-  const counterA = useMemo(
-    () => (counterNames[0] ? getLatestEntryByCounter(counterNames[0]) : null),
-    [counterNames, getLatestEntryByCounter]
-  );
-  const counterB = useMemo(
-    () => (counterNames[1] ? getLatestEntryByCounter(counterNames[1]) : null),
-    [counterNames, getLatestEntryByCounter]
-  );
+  /** Whether this session has been confirmed today. */
+  const isConfirmed = useMemo(() => {
+    const date = new Date().toISOString().split('T')[0];
+    return confirmedCounts.some((c) => c.session === session && c.date === date);
+  }, [confirmedCounts, session]);
 
-  const discrepancies = useMemo(() => findDiscrepancies(counterA, counterB), [counterA, counterB]);
-  const canConfirm = useMemo(() => canConfirmHeadcount(counterA, counterB), [counterA, counterB]);
+  /** Get the confirmed count for this session today (if any). */
+  const sessionConfirmedCount = useMemo(() => {
+    const date = new Date().toISOString().split('T')[0];
+    return confirmedCounts.find((c) => c.session === session && c.date === date) ?? null;
+  }, [confirmedCounts, session]);
 
   return {
     entries,
     confirmedCounts,
-    counterA,
-    counterB,
     counterNames,
-    discrepancies,
-    canConfirm,
+    isConfirmed,
+    sessionConfirmedCount,
     loading,
     error,
-    submitting,
+    saving,
     confirming,
-    submitHeadcount: handleSubmitHeadcount,
-    confirmHeadcount: handleConfirmHeadcount,
-    getLatestEntryByCounter,
+    saveCount,
+    confirmSession,
   };
 }

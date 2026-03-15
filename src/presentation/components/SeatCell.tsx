@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Seat } from '../../domain/models/Seat';
+import { getSeatCoordinate } from '../../domain/constants/seating';
 
 interface SeatCellProps {
   seat: Seat | null; // null = empty placeholder for row alignment
@@ -47,11 +48,14 @@ export const SeatCell: React.FC<SeatCellProps> = ({
     ? `reserved for ${seat.reservedFor}`
     : 'available';
 
+  const coord = getSeatCoordinate(seat.section, seat.row, seat.col);
+
   return (
     <button
       onClick={handleClick}
       disabled={!canToggle || isToggling}
-      aria-label={`Row ${seat.row} seat ${seat.col}: ${statusLabel}`}
+      title={coord}
+      aria-label={`${coord}: ${statusLabel}`}
       aria-pressed={seat.occupied}
       className={`
         w-5 h-5 rounded-sm flex-shrink-0 transition-all duration-150

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Seat, SectionName } from '../../domain/models/Seat';
-import { SECTIONS } from '../../domain/constants/seating';
+import { SECTIONS, getRowLabel } from '../../domain/constants/seating';
 import { SeatCell } from './SeatCell';
 
 interface SeatMapProps {
@@ -63,7 +63,7 @@ const SectionColumn: React.FC<SectionColumnProps> = ({
                 rowHasPendingRequest ? 'text-warning' : 'text-gray-400'
               }`}
             >
-              {rowNum}
+              {getRowLabel(rowNum)}
             </span>
 
             {/* Seats */}

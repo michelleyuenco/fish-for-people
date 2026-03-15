@@ -7,6 +7,8 @@ import { SeatTrackerPage } from './presentation/pages/SeatTrackerPage';
 import { RequestsPage } from './presentation/pages/RequestsPage';
 import { HeadcountPage } from './presentation/pages/HeadcountPage';
 import { FloorPlanPage } from './presentation/pages/FloorPlanPage';
+import { ZoneInputPage } from './presentation/pages/ZoneInputPage';
+import { ZonePlanPage } from './presentation/pages/ZonePlanPage';
 import { useService } from './application/hooks/useService';
 import { useRequests } from './application/hooks/useRequests';
 import type { UserRole, TabName } from './domain/models/Service';
@@ -36,15 +38,17 @@ const AppWithService: React.FC<{
   const location = useLocation();
   const { t } = useTranslation();
 
-  // Derive active tab from current path
+  // Derive active tab from current path (/zone-input maps to 'seats' tab)
   const activeTab: TabName = pathToTab[location.pathname] ??
-    (role === 'congregation' ? 'requests' : 'seats');
+    (location.pathname === '/zone-input' ? 'seats' :
+    (role === 'congregation' ? 'requests' : 'seats'));
 
   const handleTabChange = (tab: TabName) => {
     navigate(tabToPath[tab]);
   };
 
   const getPageTitle = () => {
+    if (location.pathname === '/zone-input') return t('zonePlan.pageTitle');
     switch (activeTab) {
       case 'seats':
         return t('pageTitle.seats');
@@ -68,10 +72,15 @@ const AppWithService: React.FC<{
     );
   }
 
-  // Floor plan fullscreen route — rendered outside AppLayout
+  // Full-screen routes — rendered outside AppLayout
   if (location.pathname === '/floor-plan') {
     return role === 'welcome-team'
       ? <FloorPlanPage serviceId={serviceId} />
+      : <Navigate to="/requests" replace />;
+  }
+  if (location.pathname === '/zone-plan') {
+    return role === 'welcome-team'
+      ? <ZonePlanPage />
       : <Navigate to="/requests" replace />;
   }
 
@@ -97,6 +106,11 @@ const AppWithService: React.FC<{
         <Route path="/headcount" element={
           role === 'welcome-team'
             ? <HeadcountPage serviceId={serviceId} />
+            : <Navigate to="/requests" replace />
+        } />
+        <Route path="/zone-input" element={
+          role === 'welcome-team'
+            ? <ZoneInputPage />
             : <Navigate to="/requests" replace />
         } />
         {/* Default redirect based on role */}

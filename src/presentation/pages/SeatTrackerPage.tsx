@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FloorPlanSeatMap } from '../components/FloorPlanSeatMap';
 import { SeatStats } from '../components/SeatStats';
@@ -13,6 +14,7 @@ interface SeatTrackerPageProps {
 
 export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     seatMap,
     availableCount,
@@ -73,6 +75,19 @@ export const SeatTrackerPage: React.FC<SeatTrackerPageProps> = ({ serviceId }) =
           onSetAll={setAllSeats}
         />
       </div>
+
+      {/* Zone Mode shortcut */}
+      <button
+        onClick={() => navigate('/zone-input')}
+        className="card w-full flex items-center gap-3 text-left hover:bg-gray-50 active:bg-gray-100 transition-all"
+      >
+        <span className="text-2xl">📍</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-primary">{t('zonePlan.shortcutTitle')}</div>
+          <div className="text-xs text-gray-500 truncate">{t('zonePlan.shortcutDesc')}</div>
+        </div>
+        <span className="text-gray-300 text-sm">▸</span>
+      </button>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">

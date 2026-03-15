@@ -17,6 +17,8 @@
     "textSize": "Text Size",
     "total": "Total",
     "people": "people",
+    "tapToAdd": "Tap to add",
+    "tapToEdit": "tap to edit",
     "mode": "Mode",
     "close": "Close",
     "help": "Help",
@@ -107,7 +109,8 @@
     "reservedFor": "reserved for {{type}}",
     "suggested": "suggested",
     "fillRow": "Fill row",
-    "clearRow": "Clear row"
+    "clearRow": "Clear row",
+    "seatRange": "Seats {{start}}–{{end}}"
   },
   "congregation": {
     "step1Title": "Where are you sitting?",
@@ -219,7 +222,10 @@
     "prodOutsideDirect": "Production Room & Outside: count people directly",
     "calculatedFromCapacity": "calculated from seat capacity",
     "reviewCount": "Review Count →",
-    "clearAll": "Clear All / Reset to Zero",
+    "clearAll": "Clear",
+    "confirmClearAll": "Are you sure? All count data will be reset to zero.",
+    "cancel": "Cancel",
+    "confirmClear": "Yes, Clear All",
     "confirmSubmit": "Confirm & Submit ✓",
     "shareCount": "Share Count",
     "copied": "Copied!",
@@ -230,7 +236,31 @@
     "recentServices": "Recent Services",
     "services": "Services",
     "avgAttendance": "Avg Attendance",
-    "recordHigh": "Record High"
+    "recordHigh": "Record High",
+    "autoSaving": "saving...",
+    "confirmSession": "Confirm Session",
+    "singleCounterConfirm": "You are the only counter. Confirm your numbers as the official count.",
+    "pickPerZone": "For each zone, pick which counter's number to use.",
+    "officialTotal": "Official Total",
+    "sessionConfirmed": "Session Confirmed",
+    "sessionDone": "Waiting for next session",
+    "notStartedYet": "Session hasn't started yet",
+    "startsAt": "Starts at {{time}}",
+    "fullDaySummary": "Full Day Summary",
+    "grandTotal": "Grand Total",
+    "copyAndShare": "Copy & Share",
+    "waitingAllSessions": "Not all sessions confirmed yet",
+    "missingSessionsHint": "Missing",
+    "confirmSentQuestion": "Have you successfully sent the results?",
+    "confirmSentBody": "Confirming will delete all today's attendance data from the server. This cannot be undone.",
+    "yesDeleteData": "Yes, Delete All Data",
+    "notYet": "Not Yet",
+    "noData": "no data"
+  },
+  "sessions": {
+    "morning": "Morning",
+    "noon": "Noon",
+    "afternoon": "Afternoon"
   },
   "floorPlanPage": {
     "loading": "Loading floor plan...",
@@ -255,6 +285,28 @@
     "fillCenterOutward": "Fill from center → outward",
     "needHelp": "Need Help?",
     "qrDescription": "Scan to request a pen, offering envelope, translation headset or other assistance"
+  },
+  "zonePlan": {
+    "pageTitle": "Zone Availability",
+    "kioskTitle": "Zone Availability",
+    "instructions": "Set approximate available seats per zone. The kiosk display will show a visual approximation.",
+    "openKiosk": "Open Kiosk Display",
+    "approximate": "Approximate",
+    "totalAvailable": "Total Available",
+    "capacityLabel": "max {{capacity}} seats",
+    "confirmClearAll": "Reset all zones to zero?",
+    "tapHint": "Tap a zone to add available seats · minus to remove · edit to type",
+    "shortcutTitle": "Zone Mode",
+    "shortcutDesc": "Quick approximate availability — set available seats per zone",
+    "region": {
+      "front": "Front",
+      "frontMid": "Front-Mid",
+      "mid": "Center",
+      "back": "Back",
+      "rear": "Rear",
+      "family": "Family / Elderly",
+      "volunteer": "Volunteers"
+    }
   },
   "pageTitle": {
     "seats": "Seat Availability Tracker",
